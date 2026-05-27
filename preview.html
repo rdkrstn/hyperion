@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar Inquiry-to-Installation Pipeline MVP</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f2efe9;
+      --paper: #ede9e1;
+      --paper2: #e4dfd6;
+      --teal: #00d4aa;
+      --red: #E82B2B;
+      --yellow: #FFE135;
+      --ink: #0D1B2A;
+      --muted: #666;
+      --shadow: 5px 5px 0 var(--black);
+      --shadow-lg: 8px 8px 0 var(--black);
+      --font-display: 'Anton', Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+      --font-body: 'Arial Narrow', 'Barlow Condensed', system-ui, sans-serif;
+      --font-mono: 'Courier New', 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--white);
+      color: var(--black);
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+    body::selection { background: rgba(0, 212, 170, 0.25); color: var(--black); }
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      line-height: 0.92;
+      margin: 0;
+    }
+    p { color: #4f4f4f; margin: 0; }
+    a { color: inherit; }
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      width: 100%;
+      background: var(--teal);
+      transform-origin: left;
+      transform: scaleX(0);
+      z-index: 50;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--black);
+      color: var(--white);
+      border-bottom: 4px solid var(--black);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      padding: 14px clamp(18px, 4vw, 44px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .brand-code {
+      background: var(--teal);
+      color: var(--black);
+      border: 2px solid var(--white);
+      padding: 6px 10px;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .nav a { text-decoration: none; opacity: 0.72; }
+    .nav a:hover { opacity: 1; color: var(--teal); }
+
+    .container {
+      width: min(1280px, calc(100% - 36px));
+      margin: 0 auto;
+    }
+    .hero {
+      padding: clamp(56px, 8vw, 100px) 0 44px;
+      border-bottom: 4px solid var(--black);
+      background: var(--white);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 34px;
+      align-items: stretch;
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      font-weight: 800;
+      color: var(--black);
+      border: 4px solid var(--black);
+      background: var(--teal);
+      display: inline-flex;
+      padding: 8px 14px;
+      margin-bottom: 20px;
+      box-shadow: 3px 3px 0 var(--black);
+    }
+    .hero h1 {
+      font-size: clamp(3.2rem, 8.4vw, 7.2rem);
+      max-width: 980px;
+    }
+    .hero h1 .outline {
+      color: transparent;
+      -webkit-text-stroke: 3px var(--black);
+      text-stroke: 3px var(--black);
+      display: block;
+    }
+    .hero-copy {
+      font-size: clamp(20px, 2vw, 26px);
+      line-height: 1.35;
+      max-width: 780px;
+      margin-top: 22px;
+      color: #3e3e3e;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 28px;
+    }
+    button, .button {
+      font-family: var(--font-display);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 4px solid var(--black);
+      padding: 14px 24px;
+      background: var(--black);
+      color: var(--white);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.1s, color 0.1s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 0;
+      min-height: 52px;
+    }
+    button:hover, .button:hover { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--black); }
+    button:active, .button:active { transform: translate(5px, 5px); box-shadow: none; }
+    .button-accent { background: var(--teal); color: var(--black); box-shadow: 4px 4px 0 var(--teal); }
+    .button-secondary { background: transparent; color: var(--black); }
+    .button-small {
+      padding: 9px 12px;
+      min-height: 40px;
+      border-width: 3px;
+      font-size: 13px;
+      box-shadow: 3px 3px 0 var(--black);
+    }
+    .button-yellow { background: var(--yellow); color: var(--black); }
+    .button-red { background: var(--red); color: var(--white); }
+
+    .hero-card {
+      background: var(--paper);
+      border: 4px solid var(--black);
+      box-shadow: var(--shadow-lg);
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 460px;
+    }
+    .hero-card h2 { font-size: clamp(2rem, 3.6vw, 3.4rem); }
+    .hero-card .rule { height: 4px; background: var(--black); margin: 22px 0; }
+    .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+    .mini-card {
+      background: var(--white);
+      border: 3px solid var(--black);
+      padding: 16px;
+      min-height: 126px;
+    }
+    .mini-card b {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 32px;
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+    .mini-card span {
+      display: block;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      font-size: 10px;
+      line-height: 1.35;
+      letter-spacing: 0.16em;
+      color: #555;
+      margin-top: 10px;
+    }
+
+    .system-shell {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 28px;
+      padding: 46px 0 96px;
+    }
+    .control-panel {
+      position: sticky;
+      top: 92px;
+      align-self: start;
+      background: var(--black);
+      color: var(--white);
+      border: 4px solid var(--black);
+      box-shadow: var(--shadow-lg);
+      padding: 24px;
+    }
+    .control-panel h3 { color: var(--white); font-size: 32px; margin-bottom: 14px; }
+    .control-panel p { color: rgba(255,255,255,0.6); font-size: 15px; line-height: 1.45; }
+    .status-score {
+      background: var(--white);
+      color: var(--black);
+      border: 4px solid var(--white);
+      margin: 20px 0;
+      padding: 18px;
+    }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .score-number {
+      font-family: var(--font-display);
+      font-size: 62px;
+      line-height: 0.9;
+    }
+    .score-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .scorebar {
+      height: 20px;
+      border: 3px solid var(--black);
+      background: var(--paper2);
+      margin-top: 14px;
+      overflow: hidden;
+    }
+    .scorebar span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--teal);
+      transition: width 0.4s ease;
+    }
+    .pipeline {
+      display: grid;
+      gap: 9px;
+      margin-top: 18px;
+    }
+    .pipe-step {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      border: 2px solid rgba(255,255,255,0.22);
+      min-height: 52px;
+    }
+    .pipe-step .num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      border-right: 2px solid rgba(255,255,255,0.22);
+      color: var(--black);
+      background: var(--paper2);
+    }
+    .pipe-step .txt { padding: 8px 10px; }
+    .pipe-step b {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--white);
+      line-height: 1.2;
+    }
+    .pipe-step span {
+      display: block;
+      font-size: 13px;
+      color: rgba(255,255,255,0.52);
+      margin-top: 2px;
+    }
+    .pipe-step.active { border-color: var(--teal); }
+    .pipe-step.active .num { background: var(--teal); }
+    .pipe-step.done .num { background: var(--teal); }
+    .pipe-step.done b { color: var(--teal); }
+    .assumption-box {
+      margin-top: 18px;
+      padding: 14px;
+      border: 2px solid rgba(255,255,255,0.22);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.62);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .workbench { display: grid; gap: 34px; min-width: 0; }
+    .module {
+      background: var(--white);
+      border: 4px solid var(--black);
+      box-shadow: var(--shadow-lg);
+      padding: clamp(22px, 4vw, 38px);
+      scroll-margin-top: 90px;
+    }
+    .section-bar {
+      display: inline-flex;
+      align-items: stretch;
+      border: 4px solid var(--black);
+      background: var(--white);
+      margin-bottom: 24px;
+    }
+    .section-bar .sec-num {
+      background: var(--teal);
+      border-right: 4px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.18em;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .section-bar .sec-title {
+      padding: 11px 18px 10px;
+      font-family: var(--font-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 20px;
+    }
+    .module-title {
+      font-size: clamp(2.4rem, 5vw, 4.5rem);
+      margin-bottom: 12px;
+    }
+    .module-copy {
+      font-size: 20px;
+      line-height: 1.45;
+      max-width: 760px;
+      color: #444;
+      margin-bottom: 26px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+    .field { grid-column: span 6; }
+    .field.third { grid-column: span 4; }
+    .field.full { grid-column: 1 / -1; }
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 10px;
+      font-weight: 800;
+      margin-bottom: 7px;
+      color: #333;
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 3px solid var(--black);
+      background: var(--paper);
+      color: var(--black);
+      padding: 12px 13px;
+      min-height: 48px;
+      font-family: var(--font-body);
+      font-size: 17px;
+      border-radius: 0;
+      outline: none;
+    }
+    textarea { min-height: 116px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal); outline-offset: 2px; }
+    .form-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .metric-card {
+      background: var(--paper);
+      border: 4px solid var(--black);
+      padding: 18px;
+      min-height: 136px;
+    }
+    .metric-card .metric-value {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 0.92;
+      letter-spacing: 0.04em;
+      word-break: break-word;
+    }
+    .metric-card .metric-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #555;
+      margin-top: 10px;
+      display: block;
+      line-height: 1.35;
+    }
+    .wide-panel {
+      background: var(--paper);
+      border: 4px solid var(--black);
+      padding: 22px;
+      margin-top: 18px;
+    }
+    .panel-title {
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .offer-card {
+      border: 4px solid var(--black);
+      background: var(--white);
+      padding: 20px;
+      position: relative;
+      min-height: 210px;
+    }
+    .offer-card.recommended { box-shadow: 5px 5px 0 var(--teal); border-color: var(--black); }
+    .offer-card .tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 10px;
+      background: var(--teal);
+      border: 2px solid var(--black);
+      padding: 5px 9px;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+    .offer-card h4 { font-size: 30px; margin-bottom: 8px; }
+    .offer-card p { font-size: 16px; line-height: 1.4; }
+    .offer-card .price {
+      font-family: var(--font-display);
+      font-size: 34px;
+      line-height: 1;
+      margin: 12px 0 4px;
+    }
+    .list {
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+    .list li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: #444;
+    }
+    .list li::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      background: var(--teal);
+      border: 2px solid var(--black);
+      margin-top: 3px;
+    }
+    .checklist { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+    .checklist li {
+      border: 3px solid var(--black);
+      background: var(--white);
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .checklist .status {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--black);
+      background: var(--yellow);
+      border: 2px solid var(--black);
+      padding: 4px 7px;
+      white-space: nowrap;
+    }
+    .summary-box {
+      border: 4px solid var(--black);
+      background: var(--white);
+      padding: 20px;
+    }
+    .summary-box h4 { font-size: 30px; margin-bottom: 12px; }
+    .summary-line {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      border-bottom: 1px solid rgba(10,10,10,0.15);
+      padding: 9px 0;
+      gap: 12px;
+    }
+    .summary-line:last-child { border-bottom: 0; }
+    .summary-line b {
+      font-family: var(--font-mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .survey-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .photo-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+    .photo-slot {
+      border: 3px dashed var(--black);
+      min-height: 112px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #555;
+      background: var(--paper2);
+    }
+    .proposal {
+      background: var(--white);
+      border: 4px solid var(--black);
+      box-shadow: var(--shadow);
+      margin-top: 24px;
+      overflow: hidden;
+    }
+    .proposal-head {
+      background: var(--black);
+      color: var(--white);
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: start;
+      flex-wrap: wrap;
+    }
+    .proposal-head h3 { color: var(--white); font-size: clamp(2rem, 4vw, 3.6rem); }
+    .proposal-head span {
+      display: block;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 10px;
+      color: rgba(255,255,255,0.55);
+      margin-top: 8px;
+    }
+    .proposal-body { padding: 24px; }
+    .proposal-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 4px solid var(--black);
+      margin: 16px 0;
+      background: var(--paper);
+    }
+    .proposal-table th, .proposal-table td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 2px solid var(--black);
+      vertical-align: top;
+    }
+    .proposal-table th {
+      width: 36%;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 10px;
+      background: var(--paper2);
+    }
+    .signature-box {
+      margin-top: 18px;
+      padding: 18px;
+      border: 4px solid var(--black);
+      background: var(--paper2);
+    }
+    .task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+    .task-card {
+      border: 4px solid var(--black);
+      background: var(--white);
+      padding: 16px;
+    }
+    .task-card h4 { font-size: 26px; margin-bottom: 8px; }
+    .task-card .task-code {
+      font-family: var(--font-mono);
+      letter-spacing: 0.16em;
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .analytics-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; }
+    .funnel {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .funnel-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 62px;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .funnel-bar { border: 3px solid var(--black); background: var(--paper2); height: 28px; }
+    .funnel-bar span { display: block; height: 100%; background: var(--teal); }
+    .alert {
+      border: 4px solid var(--black);
+      background: var(--yellow);
+      color: var(--black);
+      padding: 16px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      line-height: 1.5;
+      margin-top: 18px;
+    }
+    .muted-note {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+    .hide { display: none !important; }
+
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 44px 0;
+      border-top: 4px solid var(--black);
+    }
+    .footer .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .footer h2 { color: var(--white); font-size: 42px; }
+    .footer p { color: rgba(255,255,255,0.55); max-width: 680px; }
+
+    @media (max-width: 980px) {
+      .hero-grid, .system-shell, .two-col, .analytics-grid { grid-template-columns: 1fr; }
+      .control-panel { position: static; }
+      .results-grid, .three-col { grid-template-columns: repeat(2, 1fr); }
+      .task-grid, .survey-grid { grid-template-columns: 1fr; }
+      .field, .field.third { grid-column: 1 / -1; }
+    }
+    @media (max-width: 640px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .nav { display: none; }
+      .results-grid, .three-col, .mini-grid, .photo-slots { grid-template-columns: 1fr; }
+      .summary-line { grid-template-columns: 1fr; }
+      .funnel-row { grid-template-columns: 1fr; }
+    }
+    @media print {
+      .topbar, .hero, .control-panel, .form-actions, .footer, .module:not(#proposal-module) { display: none !important; }
+      body { background: white; }
+      .system-shell { display: block; padding: 0; }
+      .workbench { display: block; }
+      #proposal-module { border: none; box-shadow: none; padding: 0; }
+      .proposal { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-code">REV-SB-001</span>
+      <span>JD Sales Systems / Solar MVP</span>
+    </div>
+    <nav class="nav">
+      <a href="#intake">Capture</a>
+      <a href="#audit">Audit</a>
+      <a href="#finance">Score</a>
+      <a href="#appointment">Survey</a>
+      <a href="#proposal-module">Proposal</a>
+      <a href="#analytics">Analytics</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">Solar Inquiry-to-Installation MVP</div>
+          <h1>Stop losing leads after <span class="outline">the comment</span></h1>
+          <p class="hero-copy">A screen-recordable prototype for solar installers that converts Facebook, Messenger, kiosk, phone, and landing page inquiries into qualified MSME leads, booked site surveys, proposal follow-ups, and permit-ready task files.</p>
+          <div class="hero-actions">
+            <button class="button-accent" id="heroLoadSample">Load sample lead</button>
+            <a class="button button-secondary" href="#intake">Start demo flow</a>
+          </div>
+        </div>
+        <aside class="hero-card">
+          <div>
+            <h2>What this MVP proves</h2>
+            <div class="rule"></div>
+            <p>Solar companies do not need another messy spreadsheet. They need a source-to-sale operating system that shows which inquiries deserve engineering time and which deals are stuck.</p>
+          </div>
+          <div class="mini-grid">
+            <div class="mini-card"><b>01</b><span>One intake for every inquiry source</span></div>
+            <div class="mini-card"><b>02</b><span>Pre-audit sizing before engineer time</span></div>
+            <div class="mini-card"><b>03</b><span>Financing lane and offer cards</span></div>
+            <div class="mini-card"><b>04</b><span>Survey, proposal, permit tasks</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="container system-shell">
+      <aside class="control-panel">
+        <h3>Live control panel</h3>
+        <p>This follows one MSME from inquiry to signed intent. Use the sample button, then walk through the system in sequence.</p>
+        <div class="status-score">
+          <div class="score-row">
+            <div>
+              <div class="score-label">Finance / fit score</div>
+              <div class="score-number" id="liveScore">00</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="score-label">Lane</div>
+              <div id="liveLane" style="font-family:var(--font-display);font-size:28px;line-height:1;">NEW</div>
+            </div>
+          </div>
+          <div class="scorebar"><span id="liveScoreBar"></span></div>
+        </div>
+        <div class="pipeline" id="pipeline">
+          <div class="pipe-step active" data-step="intake"><div class="num">01</div><div class="txt"><b>Inquiry captured</b><span>Waiting for lead data</span></div></div>
+          <div class="pipe-step" data-step="audit"><div class="num">02</div><div class="txt"><b>Pre-audit generated</b><span>Bill to kWh to system size</span></div></div>
+          <div class="pipe-step" data-step="finance"><div class="num">03</div><div class="txt"><b>Financing lane set</b><span>Cash / bank / rent-to-own</span></div></div>
+          <div class="pipe-step" data-step="survey"><div class="num">04</div><div class="txt"><b>Site survey booked</b><span>Pre-visit docs and validation</span></div></div>
+          <div class="pipe-step" data-step="proposal"><div class="num">05</div><div class="txt"><b>Proposal sent</b><span>LOI and ops tasks</span></div></div>
+          <div class="pipe-step" data-step="signed"><div class="num">06</div><div class="txt"><b>File created</b><span>Permits and financing checklist</span></div></div>
+        </div>
+        <div class="assumption-box">
+          Demo math uses editable assumptions: tariff, production per kWp, and price per kWp. Replace these with the installer’s current engineering and pricing rules before using with real prospects.
+        </div>
+      </aside>
+
+      <div class="workbench">
+        <section class="module" id="intake">
+          <div class="section-bar"><span class="sec-num">01</span><span class="sec-title">Lead & Inquiry Capture</span></div>
+          <h2 class="module-title">Every inquiry enters one lane</h2>
+          <p class="module-copy">This is the intake layer. Facebook comments, Messenger inquiries, landing page forms, QR kiosks, and phone calls are standardized into one record before sales touches the lead.</p>
+
+          <div class="form-grid">
+            <div class="field third">
+              <label for="source">Lead source</label>
+              <select id="source">
+                <option>Facebook comment</option>
+                <option>Messenger</option>
+                <option>Landing page</option>
+                <option>QR kiosk</option>
+                <option>WhatsApp</option>
+                <option>Phone call logged by staff</option>
+                <option>Referral</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="businessName">MSME / business name</label>
+              <input id="businessName" placeholder="Example: Iloilo Fresh Laundry" />
+            </div>
+            <div class="field third">
+              <label for="contactName">Decision maker</label>
+              <input id="contactName" placeholder="Owner / operations head" />
+            </div>
+            <div class="field third">
+              <label for="location">Location</label>
+              <input id="location" placeholder="Iloilo City, Pavia, Oton..." />
+            </div>
+            <div class="field third">
+              <label for="businessType">Business type</label>
+              <select id="businessType">
+                <option>Restaurant / Cafe</option>
+                <option>Hotel / Accommodation</option>
+                <option>Clinic / Lab</option>
+                <option>Water Station</option>
+                <option>Laundry</option>
+                <option>Factory / Warehouse</option>
+                <option>School / Office</option>
+                <option>Retail / Grocery</option>
+                <option>Residential only</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="bill">Average monthly bill</label>
+              <input id="bill" inputmode="numeric" placeholder="45000" />
+            </div>
+            <div class="field third">
+              <label for="tariff">Tariff assumption ₱/kWh</label>
+              <input id="tariff" inputmode="decimal" value="11.00" />
+            </div>
+            <div class="field third">
+              <label for="production">kWh / kWp / month</label>
+              <input id="production" inputmode="decimal" value="110" />
+            </div>
+            <div class="field third">
+              <label for="pricePerKwp">Price per kWp assumption</label>
+              <input id="pricePerKwp" inputmode="numeric" value="55000" />
+            </div>
+            <div class="field third">
+              <label for="ownership">Property control</label>
+              <select id="ownership">
+                <option>Owns property</option>
+                <option>Leases with owner authorization</option>
+                <option>Rents / no authorization yet</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="years">Years in business</label>
+              <select id="years">
+                <option>5+ years</option>
+                <option>2–5 years</option>
+                <option>Less than 2 years</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="revenue">Revenue band</label>
+              <select id="revenue">
+                <option>₱500k+ / month</option>
+                <option>₱150k–₱500k / month</option>
+                <option>Below ₱150k / month</option>
+                <option>Prefer not to say</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="paymentHistory">Bill payment behavior</label>
+              <select id="paymentHistory">
+                <option>Consistent / current</option>
+                <option>Occasional delays</option>
+                <option>Unknown</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="timeline">Purchase timeline</label>
+              <select id="timeline">
+                <option>0–30 days</option>
+                <option>1–3 months</option>
+                <option>3–6 months</option>
+                <option>Just researching</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="interest">Interest level</label>
+              <select id="interest">
+                <option>Ready for site survey</option>
+                <option>Wants quote first</option>
+                <option>Curious / price checking</option>
+              </select>
+            </div>
+            <div class="field third">
+              <label for="surveyDate">Preferred survey slot</label>
+              <input id="surveyDate" type="datetime-local" />
+            </div>
+            <div class="field full">
+              <label for="notes">Staff notes</label>
+              <textarea id="notes" placeholder="Example: Asked hm in comments. Has high daytime usage. Wants installment option."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="calculateBtn" class="button-accent">Run pre-audit</button>
+            <button id="sampleBtn" class="button-secondary">Load sample MSME</button>
+            <button id="resetBtn" class="button-secondary">Reset</button>
+          </div>
+        </section>
+
+        <section class="module" id="audit">
+          <div class="section-bar"><span class="sec-num">02</span><span class="sec-title">MSME Energy Audit & Sizing Engine</span></div>
+          <h2 class="module-title">Engineer time stays protected</h2>
+          <p class="module-copy">The pre-audit turns a monthly bill into a first-pass system size, savings estimate, payback range, and survey summary. It is not a final engineering design. It decides whether the lead deserves a site visit.</p>
+          <div class="results-grid">
+            <div class="metric-card"><div class="metric-value" id="metricKwh">—</div><span class="metric-label">Estimated monthly kWh</span></div>
+            <div class="metric-card"><div class="metric-value" id="metricSize">—</div><span class="metric-label">Suggested system size</span></div>
+            <div class="metric-card"><div class="metric-value" id="metricSavings">—</div><span class="metric-label">Projected monthly savings</span></div>
+            <div class="metric-card"><div class="metric-value" id="metricPayback">—</div><span class="metric-label">Indicative payback</span></div>
+          </div>
+          <div class="wide-panel">
+            <div class="panel-title">Pre-audit output</div>
+            <div id="auditNarrative">Run the pre-audit to generate the summary that sales can send to the MSME before the site survey.</div>
+          </div>
+          <div class="alert">MVP boundary: this estimates feasibility. Final sizing, structural suitability, shading losses, DU requirements, and interconnection details still require installer validation.</div>
+        </section>
+
+        <section class="module" id="finance">
+          <div class="section-bar"><span class="sec-num">03</span><span class="sec-title">Financing & Scoring Module</span></div>
+          <h2 class="module-title">Qualification before quotation</h2>
+          <p class="module-copy">The scoring layer turns messy buyer context into a clear sales lane: partner financing, rent-to-own, cash, or nurture. The point is not to replace underwriting. The point is to stop treating every inquiry as equal.</p>
+          <div class="two-col">
+            <div class="wide-panel">
+              <div class="panel-title">Score breakdown</div>
+              <div id="scoreBreakdown">Run the pre-audit to see bill strength, property control, business stability, payment behavior, and urgency.</div>
+            </div>
+            <div class="wide-panel">
+              <div class="panel-title">Recommended lane</div>
+              <div id="laneNarrative">No lane assigned yet.</div>
+            </div>
+          </div>
+          <div class="three-col" id="offerCards" style="margin-top:18px;">
+            <div class="offer-card"><h4>Cash</h4><p>Offer card generated after pre-audit.</p></div>
+            <div class="offer-card"><h4>Rent-to-own</h4><p>Offer card generated after pre-audit.</p></div>
+            <div class="offer-card"><h4>Partner loan</h4><p>Offer card generated after pre-audit.</p></div>
+          </div>
+        </section>
+
+        <section class="module" id="appointment">
+          <div class="section-bar"><span class="sec-num">04</span><span class="sec-title">Appointment + On-Site Validation</span></div>
+          <h2 class="module-title">The handoff becomes visible</h2>
+          <p class="module-copy">Once the lead clears the minimum threshold, the system books an on-site slot, sends a pre-visit summary, and gives the installer rep a lightweight validation app.</p>
+          <div class="two-col">
+            <div class="summary-box">
+              <h4>Pre-visit summary</h4>
+              <div id="previsitSummary">
+                <div class="summary-line"><b>Status</b><span>Waiting for a qualified lead.</span></div>
+              </div>
+              <div class="form-actions">
+                <button id="bookSurveyBtn" class="button-accent">Auto-book site survey</button>
+              </div>
+            </div>
+            <div class="summary-box">
+              <h4>Document checklist</h4>
+              <ul class="checklist">
+                <li>Latest 3 electric bills <span class="status">Required</span></li>
+                <li>Business registration or proof of operations <span class="status">Required</span></li>
+                <li>Valid ID of authorized signatory <span class="status">Required</span></li>
+                <li>Location pin and roof access instructions <span class="status">Required</span></li>
+                <li>Existing quotation, if any <span class="status">Optional</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="wide-panel">
+            <div class="panel-title">Survey app simulation</div>
+            <div class="survey-grid">
+              <div class="form-grid">
+                <div class="field full">
+                  <label for="roofCondition">Roof condition</label>
+                  <select id="roofCondition"><option>Good condition</option><option>Minor repair needed</option><option>Engineering review required</option></select>
+                </div>
+                <div class="field full">
+                  <label for="shading">Shading level</label>
+                  <select id="shading"><option>Minimal shading</option><option>Moderate shading</option><option>Heavy shading</option></select>
+                </div>
+                <div class="field full">
+                  <label for="roofArea">Usable roof area estimate</label>
+                  <input id="roofArea" placeholder="Example: 85 sqm" />
+                </div>
+              </div>
+              <div>
+                <label>Geotagged photo placeholders</label>
+                <div class="photo-slots">
+                  <div class="photo-slot">Main roof plane</div>
+                  <div class="photo-slot">Service entrance / meter</div>
+                  <div class="photo-slot">Obstructions / shading</div>
+                </div>
+                <div class="form-actions">
+                  <button id="surveyDoneBtn" class="button-secondary">Mark survey complete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module" id="proposal-module">
+          <div class="section-bar"><span class="sec-num">05</span><span class="sec-title">Proposal, Metering & Workflow</span></div>
+          <h2 class="module-title">From interest to signed file</h2>
+          <p class="module-copy">The proposal module pulls lead data, sizing, pricing, savings, financing, and survey notes into a branded proposal view. Once accepted, it creates the installer’s ops tasks and financing review file.</p>
+
+          <div class="proposal" id="proposal">
+            <div class="proposal-head">
+              <div>
+                <h3>Solar proposal preview</h3>
+                <span id="proposalSubhead">Waiting for calculated lead</span>
+              </div>
+              <button id="printBtn" class="button-small button-yellow">Print proposal</button>
+            </div>
+            <div class="proposal-body">
+              <table class="proposal-table">
+                <tbody id="proposalTable">
+                  <tr><th>Status</th><td>Run the pre-audit to populate this proposal.</td></tr>
+                </tbody>
+              </table>
+              <div class="two-col">
+                <div class="summary-box">
+                  <h4>Net-metering / permits note</h4>
+                  <p id="meteringNote">After acceptance, the installer team receives a checklist for DU requirements, engineering design, permits, and net-metering preparation. Actual timeline and required documents must be confirmed against the current DU process.</p>
+                </div>
+                <div class="signature-box">
+                  <label for="signature">Typed LOI acceptance</label>
+                  <input id="signature" placeholder="Type business name to accept demo LOI" />
+                  <div class="form-actions">
+                    <button id="signBtn" class="button-accent">Accept demo LOI</button>
+                  </div>
+                  <p class="muted-note">Prototype only. Replace with a real e-sign tool for production.</p>
+                </div>
+              </div>
+              <div class="wide-panel" id="opsTasksPanel">
+                <div class="panel-title">Triggered tasks</div>
+                <div id="opsTasks">Accept the demo LOI to create ops and financing tasks.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module" id="analytics">
+          <div class="section-bar"><span class="sec-num">06</span><span class="sec-title">Analytics & Optimization Layer</span></div>
+          <h2 class="module-title">The installer sees the leak</h2>
+          <p class="module-copy">This layer turns the workflow into management visibility. It shows where inquiries are stuck, which sources produce site surveys, and what financing friction is killing momentum.</p>
+          <div class="analytics-grid">
+            <div class="wide-panel">
+              <div class="panel-title">Funnel snapshot</div>
+              <div class="funnel" id="funnelRows">
+                <div class="funnel-row"><span>Inquiries</span><div class="funnel-bar"><span style="width:100%"></span></div><b>100</b></div>
+                <div class="funnel-row"><span>Qualified</span><div class="funnel-bar"><span style="width:58%"></span></div><b>58</b></div>
+                <div class="funnel-row"><span>Survey booked</span><div class="funnel-bar"><span style="width:38%"></span></div><b>38</b></div>
+                <div class="funnel-row"><span>Proposal sent</span><div class="funnel-bar"><span style="width:27%"></span></div><b>27</b></div>
+                <div class="funnel-row"><span>Signed</span><div class="funnel-bar"><span style="width:14%"></span></div><b>14</b></div>
+              </div>
+            </div>
+            <div class="wide-panel">
+              <div class="panel-title">Drop-off diagnosis</div>
+              <ul class="list">
+                <li>High comment volume does not matter unless every inquiry becomes a trackable record.</li>
+                <li>Site survey no-shows fall when bills, location, and roof access are requested before the visit.</li>
+                <li>Proposal follow-up needs a stage, an owner, and a deadline. Memory is not a sales system.</li>
+                <li>Financing friction should be visible by score band and business type.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div>
+        <h2>Build the backend before buying more leads</h2>
+        <p>This MVP is intentionally narrow: capture, qualify, estimate, book, validate, propose, and trigger the next operational tasks.</p>
+      </div>
+      <a class="button button-accent" href="#intake">Replay demo</a>
+    </div>
+  </footer>
+
+  <script>
+    const PHP = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 });
+    const NUM = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 1 });
+    const WHOLE = new Intl.NumberFormat('en-PH', { maximumFractionDigits: 0 });
+
+    const state = {
+      calculated: false,
+      booked: false,
+      surveyComplete: false,
+      signed: false,
+      latest: null
+    };
+
+    const sampleLead = {
+      source: 'Facebook comment',
+      businessName: 'Iloilo Fresh Laundry',
+      contactName: 'Maria Santos',
+      location: 'Mandurriao, Iloilo City',
+      businessType: 'Laundry',
+      bill: '48000',
+      tariff: '11.00',
+      production: '110',
+      pricePerKwp: '55000',
+      ownership: 'Owns property',
+      years: '5+ years',
+      revenue: '₱150k–₱500k / month',
+      paymentHistory: 'Consistent / current',
+      timeline: '1–3 months',
+      interest: 'Ready for site survey',
+      surveyDate: '',
+      notes: 'Came from a Facebook comment asking for installment options. High daytime usage from machines, water heating, and AC. Wants a clear payback and rent-to-own path.',
+      roofArea: '95 sqm',
+      roofCondition: 'Good condition',
+      shading: 'Minimal shading'
+    };
+
+    function el(id) { return document.getElementById(id); }
+    function value(id) { return el(id).value; }
+    function setValue(id, val) { if (el(id)) el(id).value = val; }
+    function moneyNumber(v) { return Number(String(v || '').replace(/[^0-9.]/g, '')) || 0; }
+    function roundHalf(x) { return Math.max(1.5, Math.round(x * 2) / 2); }
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+    function pmt(principal, annualRate, years) {
+      const r = annualRate / 12;
+      const n = years * 12;
+      return principal * r / (1 - Math.pow(1 + r, -n));
+    }
+    function nextBusinessDaySlot() {
+      const d = new Date();
+      d.setDate(d.getDate() + 2);
+      d.setHours(10, 0, 0, 0);
+      return d.toISOString().slice(0, 16);
+    }
+    function humanDate(v) {
+      if (!v) return 'Not selected';
+      const d = new Date(v);
+      return d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function loadSample() {
+      Object.entries(sampleLead).forEach(([k, v]) => setValue(k, v));
+      if (!value('surveyDate')) setValue('surveyDate', nextBusinessDaySlot());
+      state.booked = false;
+      state.surveyComplete = false;
+      state.signed = false;
+      setValue('signature', '');
+      calculate();
+      document.querySelector('#intake').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function scoreLead(data) {
+      const breakdown = [];
+      let score = 0;
+
+      let billScore = data.bill >= 50000 ? 20 : data.bill >= 20000 ? 16 : data.bill >= 10000 ? 10 : 4;
+      score += billScore;
+      breakdown.push(['Bill strength', billScore, data.bill >= 20000 ? 'Strong operating-cost pain' : 'Lower urgency']);
+
+      let ownershipScore = data.ownership === 'Owns property' ? 20 : data.ownership.includes('authorization') ? 12 : 2;
+      score += ownershipScore;
+      breakdown.push(['Property control', ownershipScore, data.ownership]);
+
+      let yearsScore = data.years === '5+ years' ? 15 : data.years.includes('2') ? 10 : 5;
+      score += yearsScore;
+      breakdown.push(['Business stability', yearsScore, data.years]);
+
+      let paymentScore = data.paymentHistory.includes('Consistent') ? 15 : data.paymentHistory.includes('Occasional') ? 8 : 3;
+      score += paymentScore;
+      breakdown.push(['Payment behavior', paymentScore, data.paymentHistory]);
+
+      let revenueScore = data.revenue.includes('500k+') ? 10 : data.revenue.includes('150k') ? 8 : data.revenue.includes('Below') ? 4 : 3;
+      score += revenueScore;
+      breakdown.push(['Revenue band', revenueScore, data.revenue]);
+
+      let timelineScore = data.timeline === '0–30 days' ? 10 : data.timeline === '1–3 months' ? 7 : data.timeline === '3–6 months' ? 4 : 1;
+      score += timelineScore;
+      breakdown.push(['Timeline urgency', timelineScore, data.timeline]);
+
+      const targetTypes = ['Restaurant / Cafe', 'Hotel / Accommodation', 'Clinic / Lab', 'Water Station', 'Laundry', 'Factory / Warehouse', 'School / Office', 'Retail / Grocery'];
+      let typeScore = targetTypes.includes(data.businessType) ? 5 : data.businessType === 'Residential only' ? 0 : 2;
+      score += typeScore;
+      breakdown.push(['Business fit', typeScore, data.businessType]);
+
+      let interestScore = data.interest === 'Ready for site survey' ? 10 : data.interest === 'Wants quote first' ? 5 : 1;
+      score += interestScore;
+      breakdown.push(['Interest signal', interestScore, data.interest]);
+
+      return { score: clamp(score, 0, 100), breakdown };
+    }
+
+    function laneFor(score, bill) {
+      if (score >= 80) return { label: 'BANK', name: 'Partner bank / co-op financing', reason: 'Strong candidate. Prepare financing packet and site survey.' };
+      if (score >= 60) return { label: 'RTO', name: 'In-house rent-to-own', reason: 'Good lead. Use moderate downpayment and clear monthly plan.' };
+      if (bill >= 10000) return { label: 'STARTER', name: 'Starter system or energy-efficiency first', reason: 'Potential exists, but risk or readiness is incomplete.' };
+      return { label: 'NURTURE', name: 'Nurture sequence', reason: 'Low priority for engineering time. Send education and reactivation content.' };
+    }
+
+    function calculate() {
+      const data = {
+        source: value('source'),
+        businessName: value('businessName') || 'Unnamed MSME',
+        contactName: value('contactName') || 'Unknown contact',
+        location: value('location') || 'Location not provided',
+        businessType: value('businessType'),
+        bill: moneyNumber(value('bill')),
+        tariff: Number(value('tariff')) || 11,
+        production: Number(value('production')) || 110,
+        pricePerKwp: moneyNumber(value('pricePerKwp')) || 55000,
+        ownership: value('ownership'),
+        years: value('years'),
+        revenue: value('revenue'),
+        paymentHistory: value('paymentHistory'),
+        timeline: value('timeline'),
+        interest: value('interest'),
+        surveyDate: value('surveyDate'),
+        notes: value('notes'),
+        roofCondition: value('roofCondition'),
+        shading: value('shading'),
+        roofArea: value('roofArea') || 'Not captured yet'
+      };
+
+      if (!data.bill || !data.tariff || !data.production) {
+        alert('Add a monthly bill, tariff assumption, and kWh/kWp/month assumption before running the pre-audit.');
+        return;
+      }
+
+      const monthlyKwh = data.bill / data.tariff;
+      const targetOffset = data.bill >= 50000 ? 0.65 : data.bill >= 20000 ? 0.60 : 0.50;
+      const sizeRaw = monthlyKwh * targetOffset / data.production;
+      const sizeKwp = roundHalf(sizeRaw);
+      const monthlyProduction = sizeKwp * data.production;
+      const savings = Math.min(data.bill * 0.75, monthlyProduction * data.tariff * 0.85);
+      const capex = Math.round(sizeKwp * data.pricePerKwp);
+      const paybackYears = savings > 0 ? capex / savings / 12 : 0;
+
+      const scoring = scoreLead(data);
+      const lane = laneFor(scoring.score, data.bill);
+      const downpayment = Math.round(capex * 0.2);
+      const rtoMonthly = Math.round((capex - downpayment) * 1.12 / 48);
+      const bankDown = Math.round(capex * 0.1);
+      const bankMonthly = Math.round(pmt(capex - bankDown, 0.10, 5));
+      const priority = scoring.score >= 60 && data.bill >= 15000;
+
+      state.calculated = true;
+      state.latest = { data, monthlyKwh, targetOffset, sizeKwp, monthlyProduction, savings, capex, paybackYears, scoring, lane, downpayment, rtoMonthly, bankDown, bankMonthly, priority };
+
+      renderAll();
+    }
+
+    function renderAll() {
+      const r = state.latest;
+      if (!r) return;
+      const { data, monthlyKwh, sizeKwp, monthlyProduction, savings, capex, paybackYears, scoring, lane, downpayment, rtoMonthly, bankDown, bankMonthly, priority } = r;
+
+      el('metricKwh').textContent = WHOLE.format(monthlyKwh);
+      el('metricSize').textContent = `${NUM.format(sizeKwp)} kWp`;
+      el('metricSavings').textContent = PHP.format(savings);
+      el('metricPayback').textContent = `${NUM.format(paybackYears)} yrs`;
+
+      el('auditNarrative').innerHTML = `
+        <p>Based on an average monthly bill of <strong>${PHP.format(data.bill)}</strong> and a tariff assumption of <strong>${PHP.format(data.tariff).replace('.00','')}/kWh</strong>, the system estimates <strong>${WHOLE.format(monthlyKwh)} kWh/month</strong> usage.</p>
+        <p style="margin-top:10px;">Recommended starting point: <strong>${NUM.format(sizeKwp)} kWp</strong>, producing about <strong>${WHOLE.format(monthlyProduction)} kWh/month</strong> under the current demo assumptions. Projected monthly savings proxy: <strong>${PHP.format(savings)}</strong>. Indicative payback: <strong>${NUM.format(paybackYears)} years</strong>.</p>
+      `;
+
+      el('liveScore').textContent = String(scoring.score).padStart(2, '0');
+      el('liveScoreBar').style.width = `${scoring.score}%`;
+      el('liveLane').textContent = lane.label;
+
+      el('scoreBreakdown').innerHTML = `<ul class="list">${scoring.breakdown.map(item => `<li><span><strong>${item[0]}:</strong> +${item[1]} — ${item[2]}</span></li>`).join('')}</ul>`;
+      el('laneNarrative').innerHTML = `
+        <p><strong>${lane.name}</strong></p>
+        <p style="margin-top:10px;">${lane.reason}</p>
+        <p style="margin-top:10px;"><strong>Routing rule:</strong> ${priority ? 'Priority lane. Book survey and prepare financing file.' : 'Do not spend engineering time yet. Send estimate and nurture.'}</p>
+      `;
+
+      const recommended = lane.label;
+      el('offerCards').innerHTML = `
+        <div class="offer-card ${recommended === 'STARTER' || recommended === 'NURTURE' ? 'recommended' : ''}">
+          <span class="tag">Option A</span>
+          <h4>Cash</h4>
+          <p>Cleanest path if the buyer wants the fastest savings and lowest paperwork.</p>
+          <div class="price">${PHP.format(capex)}</div>
+          <p>Estimated monthly savings: ${PHP.format(savings)}</p>
+        </div>
+        <div class="offer-card ${recommended === 'RTO' ? 'recommended' : ''}">
+          <span class="tag">Option B</span>
+          <h4>Rent-to-own</h4>
+          <p>Useful for qualified MSMEs that need lower upfront friction.</p>
+          <div class="price">${PHP.format(downpayment)}</div>
+          <p>Downpayment + approx. ${PHP.format(rtoMonthly)}/month for 48 months.</p>
+        </div>
+        <div class="offer-card ${recommended === 'BANK' ? 'recommended' : ''}">
+          <span class="tag">Option C</span>
+          <h4>Partner loan</h4>
+          <p>Best for high-score buyers with stable operations and consistent payment behavior.</p>
+          <div class="price">${PHP.format(bankDown)}</div>
+          <p>Sample downpayment + approx. ${PHP.format(bankMonthly)}/month for 60 months.</p>
+        </div>
+      `;
+
+      renderPrevisit();
+      renderProposal();
+      renderPipeline();
+    }
+
+    function renderPrevisit() {
+      const r = state.latest;
+      if (!r) return;
+      const { data, sizeKwp, savings, capex, lane, priority } = r;
+      const status = priority ? (state.booked ? 'Site survey booked' : 'Qualified for survey') : 'Nurture / low priority';
+      el('previsitSummary').innerHTML = `
+        <div class="summary-line"><b>Status</b><span>${status}</span></div>
+        <div class="summary-line"><b>Business</b><span>${data.businessName} — ${data.businessType}</span></div>
+        <div class="summary-line"><b>Location</b><span>${data.location}</span></div>
+        <div class="summary-line"><b>Draft size</b><span>${NUM.format(sizeKwp)} kWp</span></div>
+        <div class="summary-line"><b>Projected savings</b><span>${PHP.format(savings)} / month</span></div>
+        <div class="summary-line"><b>Estimated capex</b><span>${PHP.format(capex)}</span></div>
+        <div class="summary-line"><b>Financing lane</b><span>${lane.name}</span></div>
+        <div class="summary-line"><b>Survey slot</b><span>${humanDate(data.surveyDate)}</span></div>
+      `;
+    }
+
+    function renderProposal() {
+      const r = state.latest;
+      if (!r) return;
+      const { data, sizeKwp, monthlyProduction, savings, capex, paybackYears, lane, downpayment, rtoMonthly, bankDown, bankMonthly } = r;
+      el('proposalSubhead').textContent = `${data.businessName} / ${data.location} / ${state.surveyComplete ? 'survey validated' : 'pre-survey estimate'}`;
+      const surveyStatus = state.surveyComplete ? `${data.roofCondition}; ${data.shading}; usable area ${data.roofArea}` : 'Pending on-site validation';
+      el('proposalTable').innerHTML = `
+        <tr><th>Client</th><td>${data.businessName} / ${data.contactName}</td></tr>
+        <tr><th>Source</th><td>${data.source}</td></tr>
+        <tr><th>System size</th><td>${NUM.format(sizeKwp)} kWp recommended starting point</td></tr>
+        <tr><th>Production estimate</th><td>${WHOLE.format(monthlyProduction)} kWh/month under demo assumptions</td></tr>
+        <tr><th>Components</th><td>PV modules, inverter, mounting, protection devices, installation labor, commissioning checklist. Exact component set to be assigned by installer engineering.</td></tr>
+        <tr><th>Estimated project price</th><td>${PHP.format(capex)}</td></tr>
+        <tr><th>Estimated savings</th><td>${PHP.format(savings)} / month; indicative payback ${NUM.format(paybackYears)} years</td></tr>
+        <tr><th>Financing path</th><td>${lane.name}. Cash: ${PHP.format(capex)}. Rent-to-own: ${PHP.format(downpayment)} down + ${PHP.format(rtoMonthly)}/month sample. Partner loan: ${PHP.format(bankDown)} down + ${PHP.format(bankMonthly)}/month sample.</td></tr>
+        <tr><th>Survey validation</th><td>${surveyStatus}</td></tr>
+        <tr><th>Sales notes</th><td>${data.notes || 'No notes captured.'}</td></tr>
+      `;
+      if (state.signed) renderOpsTasks();
+    }
+
+    function renderOpsTasks() {
+      const r = state.latest;
+      if (!r) return;
+      const { data, scoring, lane } = r;
+      el('opsTasks').innerHTML = `
+        <div class="task-grid">
+          <div class="task-card"><div class="task-code">OPS-SOP-010</div><h4>Installer ops</h4><p>Create engineering design task, confirm DU checklist, assign permit owner, request missing files, and schedule final quotation review.</p></div>
+          <div class="task-card"><div class="task-code">RPT-CP-001</div><h4>Sales follow-up</h4><p>Move deal to Proposal Accepted, set next follow-up deadline, assign salesperson, and track source-to-sale attribution.</p></div>
+          <div class="task-card"><div class="task-code">FIN-FD-101</div><h4>Financing packet</h4><p>Package bill data, business profile, score ${scoring.score}/100, ${lane.name}, survey notes, and document checklist for partner review.</p></div>
+          <div class="task-card"><div class="task-code">INT-CAB-001</div><h4>Handoff routing</h4><p>Notify installer rep, ops admin, and financing partner. Attach proposal and signed demo LOI for ${data.businessName}.</p></div>
+        </div>
+      `;
+    }
+
+    function renderPipeline() {
+      document.querySelectorAll('.pipe-step').forEach(step => step.classList.remove('active', 'done'));
+      const mark = (key, cls) => {
+        const step = document.querySelector(`.pipe-step[data-step="${key}"]`);
+        if (step) step.classList.add(cls);
+      };
+      mark('intake', 'done');
+      if (state.calculated) mark('audit', 'done'); else mark('audit', 'active');
+      if (state.calculated) mark('finance', 'done');
+      if (state.booked) mark('survey', 'done'); else if (state.calculated) mark('survey', 'active');
+      if (state.surveyComplete) mark('proposal', 'done'); else if (state.booked) mark('proposal', 'active');
+      if (state.signed) mark('signed', 'done'); else if (state.surveyComplete) mark('signed', 'active');
+    }
+
+    function bookSurvey() {
+      if (!state.latest) { alert('Run the pre-audit first.'); return; }
+      if (!value('surveyDate')) setValue('surveyDate', nextBusinessDaySlot());
+      state.booked = true;
+      state.latest.data.surveyDate = value('surveyDate');
+      renderAll();
+      el('appointment').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function markSurveyComplete() {
+      if (!state.latest) { alert('Run the pre-audit first.'); return; }
+      state.booked = true;
+      state.surveyComplete = true;
+      state.latest.data.roofCondition = value('roofCondition');
+      state.latest.data.shading = value('shading');
+      state.latest.data.roofArea = value('roofArea') || 'Not captured';
+      renderAll();
+      el('proposal-module').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function signProposal() {
+      if (!state.latest) { alert('Run the pre-audit first.'); return; }
+      const typed = value('signature').trim().toLowerCase();
+      const business = state.latest.data.businessName.trim().toLowerCase();
+      if (!typed || typed !== business) {
+        alert(`For the demo, type the business name exactly: ${state.latest.data.businessName}`);
+        return;
+      }
+      state.signed = true;
+      renderAll();
+      el('opsTasksPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function resetDemo() {
+      ['businessName','contactName','location','bill','notes','roofArea','signature'].forEach(id => setValue(id, ''));
+      setValue('tariff', '11.00');
+      setValue('production', '110');
+      setValue('pricePerKwp', '55000');
+      setValue('surveyDate', '');
+      state.calculated = false;
+      state.booked = false;
+      state.surveyComplete = false;
+      state.signed = false;
+      state.latest = null;
+      el('metricKwh').textContent = '—';
+      el('metricSize').textContent = '—';
+      el('metricSavings').textContent = '—';
+      el('metricPayback').textContent = '—';
+      el('auditNarrative').textContent = 'Run the pre-audit to generate the summary that sales can send to the MSME before the site survey.';
+      el('scoreBreakdown').textContent = 'Run the pre-audit to see bill strength, property control, business stability, payment behavior, and urgency.';
+      el('laneNarrative').textContent = 'No lane assigned yet.';
+      el('liveScore').textContent = '00';
+      el('liveLane').textContent = 'NEW';
+      el('liveScoreBar').style.width = '0%';
+      el('previsitSummary').innerHTML = '<div class="summary-line"><b>Status</b><span>Waiting for a qualified lead.</span></div>';
+      el('proposalSubhead').textContent = 'Waiting for calculated lead';
+      el('proposalTable').innerHTML = '<tr><th>Status</th><td>Run the pre-audit to populate this proposal.</td></tr>';
+      el('opsTasks').textContent = 'Accept the demo LOI to create ops and financing tasks.';
+      renderPipeline();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    el('calculateBtn').addEventListener('click', calculate);
+    el('sampleBtn').addEventListener('click', loadSample);
+    el('heroLoadSample').addEventListener('click', loadSample);
+    el('resetBtn').addEventListener('click', resetDemo);
+    el('bookSurveyBtn').addEventListener('click', bookSurvey);
+    el('surveyDoneBtn').addEventListener('click', markSurveyComplete);
+    el('signBtn').addEventListener('click', signProposal);
+    el('printBtn').addEventListener('click', () => window.print());
+
+    window.addEventListener('scroll', () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? window.scrollY / max : 0;
+      el('scrollProgress').style.transform = `scaleX(${pct})`;
+    });
+
+    renderPipeline();
+  </script>
+</body>
+</html>
