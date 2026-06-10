@@ -19,7 +19,7 @@ function decodeBase64(base64: string) {
 Deno.serve(createRemoteIntakeUploadHandler({
   async recordUpload({ token, accessJwt, category, fileName, mimeType, base64 }) {
     if (!base64) throw new ApiError('bad_request', 'base64 file payload is required.', 400);
-    verifyRemoteToken(accessJwt, token, remoteSecret);
+    await verifyRemoteToken(accessJwt, token, remoteSecret);
     const { data: intakeToken, error } = await supabase
       .from('remote_intake_tokens')
       .select('id,lead_id,deal_id,status,allowed_categories,expires_at')

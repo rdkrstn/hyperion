@@ -21,22 +21,27 @@ export interface VisibleRoute {
 const allStaffRoles: Role[] = ['owner', 'manager', 'sales', 'cs', 'installer'];
 const ownerManager: Role[] = ['owner', 'manager'];
 const salesLeadership: Role[] = ['owner', 'manager', 'sales'];
+const primaryDemoRoles: Role[] = ['owner', 'manager', 'sales', 'cs', 'installer'];
 
 export const defaultProtectedPath = '/dashboard';
 
 export const appRoutes: AppRoute[] = [
-  { path: '/dashboard', label: 'Dashboard', section: 'workspace', roles: ownerManager },
-  { path: '/leads', label: 'Leads', section: 'workspace', roles: salesLeadership },
-  { path: '/deals', label: 'Deals', section: 'workspace', roles: salesLeadership },
-  { path: '/surveys', label: 'Surveys', section: 'operations', roles: ['owner', 'manager', 'sales', 'installer'] },
-  { path: '/documents', label: 'Documents', section: 'operations', roles: ['owner', 'manager', 'cs'] },
-  { path: '/proposals', label: 'Proposals', section: 'workspace', roles: salesLeadership },
+  { path: '/dashboard', label: 'Overview', section: 'workspace', roles: primaryDemoRoles },
+  { path: '/pipeline', label: 'Pipeline', section: 'workspace', roles: primaryDemoRoles },
+  { path: '/workbench', label: 'Workbench', section: 'workspace', roles: primaryDemoRoles },
+  { path: '/automations', label: 'Automations', section: 'operations', roles: primaryDemoRoles },
+  { path: '/analytics', label: 'Analytics', section: 'workspace', roles: primaryDemoRoles },
+  { path: '/docs', label: 'Docs', section: 'admin', roles: primaryDemoRoles },
+  { path: '/leads', label: 'Leads', section: 'workspace', roles: salesLeadership, visible: false },
+  { path: '/deals', label: 'Deals', section: 'workspace', roles: salesLeadership, visible: false },
+  { path: '/surveys', label: 'Surveys', section: 'operations', roles: ['owner', 'manager', 'sales', 'installer'], visible: false },
+  { path: '/documents', label: 'Documents', section: 'operations', roles: ['owner', 'manager', 'cs'], visible: false },
+  { path: '/proposals', label: 'Proposals', section: 'workspace', roles: salesLeadership, visible: false },
   { path: '/solar-snapshots', label: 'Solar Workbench', section: 'workspace', roles: ['owner', 'manager', 'sales', 'installer'], visible: false },
-  { path: '/calendar', label: 'Calendar', section: 'operations', roles: ['sales'] },
-  { path: '/portal-links', label: 'Client Portal Links', section: 'workspace', roles: ['sales'] },
-  { path: '/tickets', label: 'Tickets', section: 'operations', roles: ['owner', 'manager', 'cs'] },
-  { path: '/analytics', label: 'Analytics', section: 'workspace', roles: ownerManager },
-  { path: '/settings', label: 'Settings', section: 'admin', roles: ownerManager },
+  { path: '/calendar', label: 'Calendar', section: 'operations', roles: ['sales'], visible: false },
+  { path: '/portal-links', label: 'Client Portal Links', section: 'workspace', roles: ['sales'], visible: false },
+  { path: '/tickets', label: 'Tickets', section: 'operations', roles: ['owner', 'manager', 'cs'], visible: false },
+  { path: '/settings', label: 'Settings', section: 'admin', roles: ownerManager, visible: false },
   { path: '/profile', label: 'Profile', section: 'admin', roles: allStaffRoles, visible: false },
   { path: '/staff', label: 'Staff', section: 'admin', roles: ['owner'], visible: false },
 ];
@@ -51,7 +56,6 @@ export const publicRoutes: AppRoute[] = [
 
 export const legacyUnavailableRoutes: AppRoute[] = [
   { path: '/crm', label: 'CRM', section: 'workspace', roles: allStaffRoles, legacy: true, unavailableReason: 'CRM was split into Leads and Deals.', canonicalReplacement: '/leads' },
-  { path: '/pipeline', label: 'Pipeline', section: 'workspace', roles: allStaffRoles, legacy: true, unavailableReason: 'Pipeline language was removed for the clean demo.', canonicalReplacement: '/deals' },
   { path: '/opportunities', label: 'Opportunities', section: 'workspace', roles: allStaffRoles, legacy: true, unavailableReason: 'Opportunities were renamed to Deals.', canonicalReplacement: '/deals' },
   { path: '/checkout', label: 'Checkout', section: 'workspace', roles: allStaffRoles, legacy: true, unavailableReason: 'Checkout was replaced by the Proposal Builder.', canonicalReplacement: '/proposals' },
   { path: '/billing', label: 'Billing', section: 'operations', roles: allStaffRoles, legacy: true, unavailableReason: 'Billing is hidden from the demo; provider execution remains mocked.', canonicalReplacement: '/proposals' },
@@ -62,29 +66,11 @@ export const legacyUnavailableRoutes: AppRoute[] = [
 ];
 
 export const visibleNavigation: Record<Role, VisibleRoute[]> = {
-  owner: appRoutes
-    .filter((route) => ['Dashboard', 'Leads', 'Deals', 'Surveys', 'Documents', 'Proposals', 'Tickets', 'Analytics', 'Settings'].includes(route.label))
-    .map(({ path, label, section }) => ({ path, label, section })),
-  manager: appRoutes
-    .filter((route) => ['Dashboard', 'Leads', 'Deals', 'Surveys', 'Documents', 'Proposals', 'Tickets', 'Analytics', 'Settings'].includes(route.label))
-    .map(({ path, label, section }) => ({ path, label, section })),
-  sales: appRoutes
-    .filter((route) => ['/leads', '/deals', '/proposals', '/calendar', '/portal-links'].includes(route.path))
-    .map(({ path, label, section }) => ({ path, label, section })),
-  installer: [
-    { path: '/surveys', label: 'Assigned Surveys', section: 'operations' },
-    { path: '/surveys?view=site-details', label: 'Site Details', section: 'operations' },
-    { path: '/surveys?view=evidence', label: 'Evidence Upload', section: 'operations' },
-    { path: '/surveys?view=blockers', label: 'Blockers', section: 'operations' },
-    { path: '/surveys?view=completed', label: 'Completed Surveys', section: 'operations' },
-  ],
-  cs: [
-    { path: '/documents', label: 'Document Vault', section: 'operations' },
-    { path: '/documents?queue=remote-intake', label: 'Remote Intake Links', section: 'operations' },
-    { path: '/documents?queue=compliance', label: 'Compliance Docs', section: 'operations' },
-    { path: '/documents?queue=net-metering', label: 'Net-Metering Tracker', section: 'operations' },
-    { path: '/tickets', label: 'Tickets', section: 'operations' },
-  ],
+  owner: appRoutes.filter((route) => route.visible !== false).map(({ path, label, section }) => ({ path, label, section })),
+  manager: appRoutes.filter((route) => route.visible !== false).map(({ path, label, section }) => ({ path, label, section })),
+  sales: appRoutes.filter((route) => route.visible !== false).map(({ path, label, section }) => ({ path, label, section })),
+  installer: appRoutes.filter((route) => route.visible !== false).map(({ path, label, section }) => ({ path, label, section })),
+  cs: appRoutes.filter((route) => route.visible !== false).map(({ path, label, section }) => ({ path, label, section })),
   client: [],
 };
 

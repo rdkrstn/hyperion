@@ -20,7 +20,6 @@ yarn-error.log*
 # dotenv
 .env
 .env.local
-.env.example
 
 # test outputs
 .playwright-mcp

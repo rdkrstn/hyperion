@@ -1,8 +1,8 @@
-# Architecture
+# Hyperion Architecture
 
 ## Runtime Shape
 
-Solar Ops is now a domain-driven React app backed by Supabase. `src/App.tsx` is route composition only; workflow logic lives in domain services and shared orchestration.
+Hyperion is a domain-driven React app with a local-first public demo and Supabase production scaffolding. `src/App.tsx` is route composition only; workflow logic lives in domain services and shared orchestration.
 
 Runtime data starts empty. Local mode persists only local development records; production persistence is Supabase.
 
@@ -43,6 +43,7 @@ Rules:
 - shadcn/ui source components live in `src/components/ui`; shared app wrappers live in `src/shared/ui`. DaisyUI remains as a transition baseline, while refactored lifecycle surfaces use shadcn primitives.
 - `shared/api/businessMutations.ts` is the production mutation boundary. It calls Supabase Edge Functions for intake, OCR, Maps, Solar Snapshot, readiness, remote intake, document validation, survey dispatch/evidence, proposal generation, compliance docs, and contract acceptance.
 - `shared/api/solarOpsStore.ts` is the local development fallback orchestrator. It must not be treated as the production source of truth.
+- Internal `SolarOps` names are legacy implementation names retained during the Hyperion public demo release to avoid a broad, risky rename.
 
 ## Domain Boundaries
 
@@ -65,19 +66,23 @@ Rules:
 
 ## Routes
 
-Protected routes:
+Primary protected routes:
 
 - `/dashboard`
+- `/pipeline`
+- `/workbench`
+- `/analytics`
+- `/automations`
+- `/docs`
+
+Operational detail routes remain available behind the app shell:
+
 - `/leads`, `/leads/new`, `/leads/:id`
 - `/deals`, `/deals/:id`
 - `/surveys`, `/surveys/:id`
 - `/documents`, `/documents/:id`
 - `/proposals`, `/proposals/:dealId`
-- `/calendar`
-- `/portal-links`
-- `/tickets`
-- `/analytics`
-- `/profile`, `/staff`, `/settings`
+- `/calendar`, `/portal-links`, `/tickets`, `/settings`
 
 Public routes:
 
@@ -87,7 +92,7 @@ Public routes:
 - `/portal/:token`
 - `/contracts/:token`
 
-Legacy preview routes are not active handlers: `/crm`, `/pipeline`, `/opportunities`, `/checkout`, `/billing`, `/reports`, `/ai-assist`, `/notifications`, and `/clients`. They render the unavailable route page with a canonical replacement instead of silently redirecting.
+Legacy preview routes are not active handlers: `/crm`, `/opportunities`, `/checkout`, `/billing`, `/reports`, `/ai-assist`, `/notifications`, and `/clients`. They render the unavailable route page with a canonical replacement instead of silently redirecting.
 
 ## State Machine
 

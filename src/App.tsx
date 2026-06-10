@@ -2,7 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SolarOpsProvider } from './shared/api/SolarOpsProvider';
 import { AppLayout } from './app/layout/AppLayout';
 import { DashboardPage } from './app/routes/DashboardPage';
+import { PipelinePage } from './app/routes/PipelinePage';
+import { WorkbenchPage } from './app/routes/WorkbenchPage';
 import { CalendarPage } from './app/routes/CalendarPage';
+import { DocsPage } from './app/routes/DocsPage';
 import { PortalLinksPage } from './app/routes/PortalLinksPage';
 import { SettingsPage } from './app/routes/SettingsPage';
 import { SigninPage } from './app/routes/SigninPage';
@@ -22,6 +25,7 @@ import { PortalPage } from './domains/client-portal/pages/PortalPage';
 import { RemoteIntakePage } from './domains/client-portal/pages/RemoteIntakePage';
 import { TicketsPage } from './domains/tickets/pages/TicketsPage';
 import { AnalyticsPage } from './domains/analytics/pages/AnalyticsPage';
+import { AutomationsPage } from './domains/automations/pages/AutomationsPage';
 import { UnavailablePage } from './app/routes/UnavailablePage';
 import { legacyUnavailableRoutes } from './app/routes/routeConfig';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -40,6 +44,10 @@ function App() {
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/pipeline" element={<PipelinePage />} />
+              <Route path="/workbench" element={<WorkbenchPage />} />
+              <Route path="/automations" element={<AutomationsPage />} />
+              <Route path="/docs" element={<DocsPage />} />
               <Route path="/leads" element={<LeadsPage />} />
               <Route path="/leads/new" element={<NewLeadPage />} />
               <Route path="/leads/:id" element={<LeadDetailPage />} />

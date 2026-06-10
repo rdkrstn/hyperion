@@ -1,12 +1,32 @@
-# Solar Ops
+# Hyperion
 
-Single-company solar operations app built with Vite, React, TypeScript, React Router, Supabase, Tailwind CSS, DaisyUI, and source-owned shadcn/ui components.
+Hyperion is a public demo/reference implementation for solar PV installer operations. It packages the existing installer lifecycle into a cleaner first-run experience: Overview, Pipeline, Workbench, Automations, Analytics, and Docs.
 
-The clean demo follows the real lifecycle: Leads qualify the buyer, Deals commercialize the project, Solar Snapshots validate the site before dispatch, Surveys prove technical feasibility, Documents clear blockers, Proposals convert, Client Portal links build trust, Tickets support aftersales, and Analytics supports owner/manager review.
+The v1 public demo is local-first by default. It starts empty, runs without paid APIs, and only loads sample business records when a user clicks `Load golden demo` or `Load demo data`.
 
-Runtime business data starts empty. Test fixtures are separate from runtime state.
+## What It Demonstrates
 
-For recording or stakeholder walkthroughs, use the explicit **Load demo data** button on Dashboard, Leads, or Settings. It loads six fixed local scenarios without changing the default empty startup behavior: Iloilo Mini Mart as the best-fit MSME, Maria Santos as an interested residential blocker case, Jaro Print & Packaging as a high-value document-blocked commercial lead, Atria Cold Storage as a large commercial continuity project, Iloilo Montessori School as a board/net-metering approval case, and Oton Water Refilling Station as a Solar Snapshot manual-review case.
+- Lead intake and qualification for solar buyers.
+- Deal pipeline tracking from captured lead to won project.
+- Solar Snapshot review with manual rooftop pin and panel allocation.
+- Document vault readiness, survey validation, proposal gating, and contract-ready handoff.
+- Net-metering readiness checkpoints.
+- Local automation handoff recipes that can optionally map to n8n webhooks.
+- Supabase schema, RLS, Storage, and Edge Function scaffolding for production integration.
+
+## Current Status
+
+| Area | Status |
+|---|---|
+| Public UI shell | v1 demo-ready |
+| Golden demo loop | v1 demo-ready |
+| Local workflow store | Built |
+| Supabase schema and Edge Functions | Scaffolded |
+| Production Supabase query hydration | Partial |
+| n8n automation | Local simulation by default |
+| License | Apache-2.0 |
+
+Hyperion is not a hosted SaaS product and does not claim production readiness out of the box. The backend foundation is present, but the active public demo UI still uses the local development store for many interactions.
 
 ## Quickstart
 
@@ -17,196 +37,116 @@ npm run dev
 
 Open the Vite URL, usually `http://127.0.0.1:5173`.
 
-## Environment
+Run checks:
 
-Create `.env.local` from `.env.example`:
-
-```env
-VITE_SUPABASE_URL=your-project-url
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-VITE_GOOGLE_MAPS_BROWSER_KEY=your-browser-restricted-google-maps-key
+```powershell
+npx vitest run
+npm run build
+npm audit --omit=dev
 ```
 
-Set server-side Edge Function secrets only in Supabase:
+If you are working against a local Supabase stack, also run:
+
+```powershell
+npx supabase db reset
+```
+
+## Environment
+
+Create `.env.local` from `.env.example`.
+
+```env
+VITE_APP_NAME=Hyperion
+VITE_APP_ENV=local
+VITE_DEMO_MODE=true
+VITE_AUTOMATION_MODE=local
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_GOOGLE_MAPS_BROWSER_KEY=
+```
+
+Server-side secrets belong only in Supabase Edge Function secrets:
 
 ```powershell
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=...
 supabase secrets set GEMINI_API_KEY=...
-supabase secrets set GEMINI_OCR_MODEL=gemini-2.5-flash
 supabase secrets set GOOGLE_VISION_API_KEY=...
 supabase secrets set GOOGLE_MAPS_SERVER_KEY=...
 supabase secrets set REMOTE_INTAKE_JWT_SECRET=...
 supabase secrets set OPENAI_API_KEY=...
 ```
 
-Never expose service-role, Gemini, Google Vision, Google Maps server, OpenAI, or payment-provider secrets in `VITE_` variables.
+Do not put service-role keys, Gemini keys, Google Vision keys, Google Maps server keys, OpenAI keys, remote-intake signing secrets, or n8n secret webhook URLs in browser-exposed `VITE_` variables.
 
-The browser Maps key powers the manual rooftop pin inside the `/leads/new` Location and utility section and the Lead Solar Snapshot tab. The pin writes latitude/longitude, place ID, and standardized address where available; a confirmed pin is accepted as the lead location even when the typed address is blank. In local development, creating a lead with a confirmed pin immediately creates the local Solar Snapshot. Server-side Solar API enrichment still runs through Edge Functions with `GOOGLE_MAPS_SERVER_KEY`.
+## Golden Demo
 
-Solar Snapshot also carries the pre-proposal panel allocation. Staff can add or remove panels in Lead, Deal, and Proposal views through an operator-facing roof review with satellite context, metrics, and panel controls. The UI renders Google panel overlays when Building Insights returns real `solarPanels` center geometry; otherwise it shows a clearly labeled estimated panel layout from the Solar Snapshot roof capacity, without pretending Data Layers roof masks are verified. The selected panel count is capped by the Solar API roof maximum before the layout can feed proposal scope. Creating a proposal draft captures the current Solar Snapshot panel layout into that proposal revision so later changes require a new proposal revision.
+Use the app shell controls:
 
-Lead detail is the recovery surface for incomplete capture. The Qualification tab lets staff update business fit, utility provider, site control, goal, daytime usage, and bill estimate after the first D2D pass. `/leads/new` also accepts a fallback monthly kWh value; when the peso bill is blank, the app estimates the bill at PHP 11/kWh so readiness, savings, and Energy Graph calculations can proceed before OCR. Energy Profile owns the Energy Graph; Supabase mode runs `bill-ocr-preaudit` with Gemini structured image extraction first and Google Vision fallback, while local mode can parse bundled Meralco fixture filenames or generate a clearly labeled local/manual graph. The Documents tab can upload actual customer bill, valid ID, site-control, or business files directly to the lead before a deal exists; those lead-level files still count for proposal document gates after CS/owner validation. Local development stores file payloads as data URLs so staff can view, download, replace, and delete files without a live Storage bucket. Supabase mode uses `/documents/:id` plus `document-signed-url` for short-lived private Storage access.
+- `Load golden demo`: loads the Iloilo Mini Mart lifecycle.
+- `Next action`: advances the demo through documents, survey validation, proposal, contract, and won state.
+- `Reset`: clears local demo state.
 
-Lead list and lead detail use the same stored `readinessScore` value. Readiness only changes through lead qualification mutations or server/business recalculation paths, so curated demo scores stay consistent between the table and detail view.
+The demo never auto-seeds on startup. It is a manual local action so contributors can inspect empty states and first-run behavior.
 
-## Frontend Architecture
-
-`src/App.tsx` only composes routes and providers. Feature logic lives in domain folders:
+## Source Layout
 
 ```txt
 src/
-  app/
-    routes/
-    layout/
-    guards/
-  domains/
-    leads/
-    deals/
-    qualification/
-    solar-snapshot/
-    surveys/
-    documents/
-    proposals/
-    client-portal/
-    financing/
-    tickets/
-    analytics/
-  shared/
-    api/
-    types/
-    ui/
-    utils/
+  app/              route composition, shell, guards, route metadata
+  components/ui/    source-owned shadcn/ui components
+  domains/          feature pages, services, rules, and types
+  shared/           local store, demo helpers, UI primitives, utilities
+supabase/
+  migrations/       canonical database baseline
+  functions/        Edge Functions and shared server helpers
+docs/               public contributor and architecture docs
 ```
 
-Domain pages live in `domains/*/pages`, domain services in `domains/*/services` or `domains/*/rules`, and generic helpers in `shared/*`.
+`src/app/routes/routeConfig.ts` is the canonical route metadata source. `src/shared/api/businessMutations.ts` is the production mutation boundary. `src/shared/api/solarOpsStore.ts` is the local development fallback orchestrator.
 
-`src/app/routes/routeConfig.ts` is the single route metadata source used by layout, route helpers, and tests. Removed legacy paths render a designed unavailable page with a canonical replacement instead of silently redirecting.
+Some internal files still use the old `SolarOps` naming while the public product name has moved to Hyperion. Those names are kept temporarily to avoid a risky broad rename during the public demo release.
 
-shadcn/ui source components live in `src/components/ui`, with shared wrappers in `src/shared/ui`. DaisyUI remains available during the transition for broad utility styling, but refactored lifecycle surfaces use shadcn primitives for tabs, dialogs, buttons, cards, tables, forms, sheets, alerts, and calendar/list workflows.
+## Supabase
 
-## Supabase Setup
+Canonical baseline:
 
-This is a clean reset. Data compatibility with older preview migrations is intentionally removed.
-
-Run the canonical baseline migration:
-
-```powershell
-npx supabase db reset
+```txt
+supabase/migrations/20260521183144_clean_domain_state_machine.sql
 ```
 
-Current baseline:
+The migration includes staff profiles, leads, lead energy/site profiles, qualification, bill uploads, solar snapshots, deals, documents, remote-intake tokens, surveys, evidence, proposals, billing, contracts, client portals, clients, financing packets, compliance, net-metering workflows, calendar events, tickets, timeline events, notifications, and report embedding chunks.
 
-- `supabase/migrations/20260521183144_clean_domain_state_machine.sql`
+Production public access should go through Edge Functions for inquiry, remote intake, client portal, and contract signing. Do not open broad anonymous table or bucket access.
 
-The baseline creates canonical tables for `staff_profiles`, `leads`, `lead_energy_profiles`, `lead_site_profiles`, `qualification_sections`, `bill_uploads`, `solar_snapshots`, `deals`, `deal_commercial_packets`, `documents`, `remote_intake_tokens`, `surveys`, `survey_evidence`, `proposals`, `quote_line_items`, `billing_invoices`, `contract_acceptances`, `client_portals`, `clients`, `financing_packets`, `compliance_rules`, `compliance_holidays`, `net_metering_workflows`, `calendar_events`, `tickets`, `timeline_events`, and `notifications`. Bill OCR stores observed and annualized bill-history series for lead graphing. RLS is enabled on all public tables.
+See [docs/supabase.md](docs/supabase.md) for setup notes.
 
-React owns UX state only. Production business mutations go through Supabase Edge Functions via `src/shared/api/businessMutations.ts`; local in-memory actions remain only as the development fallback when Supabase is not configured.
+## Automation Handoffs
 
-Deploy Edge Functions:
+Hyperion includes local automation recipes for:
 
-```powershell
-supabase functions deploy contract-access
-supabase functions deploy lead-intake
-supabase functions deploy bill-ocr-preaudit
-supabase functions deploy maps-enrichment
-supabase functions deploy solar-snapshot
-supabase functions deploy readiness-score
-supabase functions deploy remote-intake-create
-supabase functions deploy remote-intake-access
-supabase functions deploy remote-intake-upload
-supabase functions deploy document-signed-url
-supabase functions deploy document-validate
-supabase functions deploy survey-dispatch
-supabase functions deploy survey-evidence-upload
-supabase functions deploy generate-proposal
-supabase functions deploy generate-compliance-docs
-supabase functions deploy installer-route-plan
-supabase functions deploy report-rag
-```
+- lead captured
+- documents missing
+- proposal sent
+- survey validated
+- net-metering blocked
+- contract ready
 
-Client Portal access is product-facing language. Public portal functions should target canonical `client_portals`, `deals`, `documents`, and `proposals` records.
+The default is `VITE_AUTOMATION_MODE=local`. Webhook dispatch is opt-in and should be reviewed before production use.
 
-Required private buckets:
-
-- `readiness-uploads`
-- `survey-evidence`
-- `deal-files`
-- `compliance-doc-templates`
-- `compliance-documents`
-
-## Routes
-
-Protected staff routes:
-
-- `/dashboard`
-- `/leads`, `/leads/new`, `/leads/:id`
-- `/deals`, `/deals/:id`
-- `/surveys`, `/surveys/:id`
-- `/documents`, `/documents/:id`
-- `/proposals`, `/proposals/:dealId`
-- `/calendar`, `/calendar/:id`
-- `/portal-links`
-- `/tickets`, `/tickets/:id`
-- `/analytics`, `/analytics/:id`
-- `/profile`, `/staff`, `/settings`
-
-Public routes:
-
-- `/signin`
-- `/inquiry`
-- `/remote-intake/:token`
-- `/portal/:token`
-- `/contracts/:token`
-
-Legacy preview routes such as `/crm`, `/pipeline`, `/opportunities`, `/checkout`, `/billing`, `/reports`, `/ai-assist`, `/notifications`, and `/clients` are not active clean-demo routes. They render the unavailable route page with the replacement module instead of redirecting to the dashboard.
-
-## Lifecycle
-
-`Lead Captured -> Qualified -> Deal Created -> Solar Snapshot Reviewed -> Survey Scheduled -> Survey Validated -> Proposal Built -> Client Portal Shared -> Contract Accepted -> Won -> Installation / Net-Metering / Aftersales`
-
-Main blockers:
-
-- Needs Bill
-- Needs Site Control
-- Needs Financing Info
-- Solar Snapshot Pending
-- Manual Dispatch Override Needed
-- Survey Blocked
-- Docs Missing
-- Proposal Approval Needed
-- Contract Pending
-
-Proposal readiness derives required document validation from the linked document records (`customer_bill`, `valid_id`, and `site_control_document`) at proposal creation time. Validated documents linked to the deal or its source lead count. Cached deal status should never block a proposal when the actual linked documents are validated, and the UI shows each missing category instead of a generic blocker. Lead and deal timeline views collapse repeated Solar panel slider changes to the latest panel-layout event so the audit trail remains readable.
-
-Net-metering readiness is visible in Deals, Documents, Proposals, and Client Portal. The workflow steps are Eligibility, Documents, Technical Review, Application, Metering, and Active Credits. The proposal gate shows net-metering as an ordered checklist item instead of hiding it in a long blocker string. Eligibility depends on utility provider and site-control answer; Documents depend on validated Customer Bill, Valid ID, and Site-Control Document; Technical Review depends on installer survey validation.
-
-The public `/contracts/:token` page is now a printable web proposal and contract surface. It includes prepared-for details, system summary, annual/monthly output, savings/payback assumptions, residential or MSME value sections, scope inclusions/exclusions, investment summary, warranty, timeline, terms, net-metering progress, scope/BOM lines, and typed acceptance.
-
-## Verification
-
-Run before claiming completion:
-
-```powershell
-npx vitest run
-npm run build
-npx supabase db reset
-```
-
-For UI changes:
-
-```powershell
-npm run dev
-```
-
-Then smoke-test the staff lifecycle on desktop and mobile widths.
+See [docs/automation-handoffs.md](docs/automation-handoffs.md).
 
 ## Documentation
 
-- `init/README.md`: bootstrap source of truth
-- `AGENTS.md`: coding-agent instructions
-- `MEMORY.md`: durable project decisions
-- `docs/architecture.md`: module and data flow
-- `docs/database.md`: canonical schema and RLS intent
-- `docs/rbac.md`: permissions and blocked actions
-- `docs/workflows.md`: lifecycle and state gates
-- `docs/verification.md`: QA checklist
+- [docs/project-status.md](docs/project-status.md)
+- [docs/local-demo-mode.md](docs/local-demo-mode.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/supabase.md](docs/supabase.md)
+- [docs/automation-handoffs.md](docs/automation-handoffs.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+- [ROADMAP.md](ROADMAP.md)
+- [CHANGELOG.md](CHANGELOG.md)
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

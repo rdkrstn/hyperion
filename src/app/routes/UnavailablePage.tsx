@@ -23,7 +23,7 @@ export function UnavailablePage() {
           </div>
           <CardTitle>{route?.label ?? 'This page is not part of the clean demo'}</CardTitle>
           <CardDescription>
-            {route?.unavailableReason ?? 'The requested route is not available in the current Solar Ops lifecycle workspace.'}
+            {route?.unavailableReason ?? 'The requested route is not available in the current Hyperion public demo workspace.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

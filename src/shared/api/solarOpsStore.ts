@@ -1,3 +1,4 @@
+// Legacy naming retained during the Solar Ops -> Hyperion transition.
 import { createClientPortal } from '../../domains/client-portal/services/clientPortalService';
 import type { ClientPortalRecord } from '../../domains/client-portal/types';
 import { markDealOutcome, createDealFromLead as createDomainDeal, scheduleSurveyGate } from '../../domains/deals/services/dealService';
@@ -13,11 +14,12 @@ import { acceptContract as acceptDomainContract, createProposalDraft, freezeProp
 import type { ClientRecord, InvoiceRecord, PaymentLedgerEvent, ProposalContract, ProposalRecord } from '../../domains/proposals/types';
 import { runLocalSolarSnapshot, updatePanelLayout } from '../../domains/solar-snapshot/services/solarSnapshotService';
 import type { SolarSnapshot } from '../../domains/solar-snapshot/types';
-import { addSurveyEvidence, scheduleSurvey as scheduleDomainSurvey, surveyValidationGate, validateSurvey as validateDomainSurvey } from '../../domains/surveys/services/surveyService';
+import { addSurveyEvidence, requiredSurveyEvidence, scheduleSurvey as scheduleDomainSurvey, surveyValidationGate, validateSurvey as validateDomainSurvey } from '../../domains/surveys/services/surveyService';
 import type { SurveyEvidenceCategory, SurveyRecord } from '../../domains/surveys/types';
 import type { TicketRecord } from '../../domains/tickets/types';
 import { makeId, nowIso, type ActionResult, type Role, type TimelineEvent } from '../types/app';
 import { buildDemoSeed, isDemoSeedId } from './demoSeed';
+import { buildGoldenDemoModel, goldenDemoDealId, goldenDemoLeadId, type GoldenDemoModel } from '../demo/goldenDemo';
 
 export interface CalendarEventRecord {
   id: string;
@@ -135,41 +137,216 @@ function buildLocalEnergyGraphSource(lead: LeadRecord): BillHistoryMonth[] {
   }));
 }
 
+function mergeDemoSeed(state: SolarOpsState): SolarOpsState {
+  const demo = buildDemoSeed();
+  const demoDealIds = new Set(demo.deals.map((deal) => deal.id));
+  const demoLeadIds = new Set(demo.leads.map((lead) => lead.id));
+  const demoProposalIds = new Set<string>();
+  const withoutDemo: SolarOpsState = {
+    ...state,
+    leads: state.leads.filter((lead) => !isDemoSeedId(lead.id)),
+    deals: state.deals.filter((deal) => !isDemoSeedId(deal.id) && !demoLeadIds.has(deal.leadId)),
+    solarSnapshots: state.solarSnapshots.filter((snapshot) => !isDemoSeedId(snapshot.id) && !demoLeadIds.has(snapshot.leadId) && !demoDealIds.has(snapshot.dealId ?? '')),
+    surveys: state.surveys.filter((survey) => !isDemoSeedId(survey.id) && !demoDealIds.has(survey.dealId)),
+    documents: state.documents.filter((document) => !isDemoSeedId(document.id) && !demoLeadIds.has(document.leadId ?? '') && !demoDealIds.has(document.dealId ?? '')),
+    proposals: state.proposals.filter((proposal) => !isDemoSeedId(proposal.id) && !demoDealIds.has(proposal.dealId)),
+    proposalContracts: state.proposalContracts.filter((contract) => !isDemoSeedId(contract.id) && !demoDealIds.has(contract.dealId) && !demoProposalIds.has(contract.proposalId)),
+    invoices: state.invoices.filter((invoice) => !isDemoSeedId(invoice.id) && !demoDealIds.has(invoice.dealId)),
+    paymentLedgerEvents: state.paymentLedgerEvents.filter((event) => !isDemoSeedId(event.id)),
+    clientPortals: state.clientPortals.filter((portal) => !isDemoSeedId(portal.id) && !demoDealIds.has(portal.dealId)),
+    clients: state.clients.filter((client) => !isDemoSeedId(client.id)),
+    tickets: state.tickets.filter((ticket) => !isDemoSeedId(ticket.id)),
+    calendarEvents: state.calendarEvents.filter((event) => !isDemoSeedId(event.id) && !demoDealIds.has(event.linkedDealId ?? '')),
+    timelineEvents: state.timelineEvents.filter((event) => !isDemoSeedId(event.id) && !demoLeadIds.has(event.ownerId) && !demoDealIds.has(event.ownerId) && !demoProposalIds.has(event.ownerId)),
+  };
+  return {
+    ...withoutDemo,
+    leads: [...demo.leads, ...withoutDemo.leads],
+    deals: [...demo.deals, ...withoutDemo.deals],
+    solarSnapshots: [...demo.solarSnapshots, ...withoutDemo.solarSnapshots],
+    documents: [...demo.documents, ...withoutDemo.documents],
+    timelineEvents: [...demo.timelineEvents, ...withoutDemo.timelineEvents],
+  };
+}
+
 export function createSolarOpsActions(getState: GetState, setState: SetState) {
   return {
     loadDemoData(): ActionResult<SolarOpsState> {
-      const state = getState();
-      const demo = buildDemoSeed();
-      const demoDealIds = new Set(demo.deals.map((deal) => deal.id));
-      const demoLeadIds = new Set(demo.leads.map((lead) => lead.id));
-      const demoProposalIds = new Set<string>();
-      const withoutDemo: SolarOpsState = {
-        ...state,
-        leads: state.leads.filter((lead) => !isDemoSeedId(lead.id)),
-        deals: state.deals.filter((deal) => !isDemoSeedId(deal.id) && !demoLeadIds.has(deal.leadId)),
-        solarSnapshots: state.solarSnapshots.filter((snapshot) => !isDemoSeedId(snapshot.id) && !demoLeadIds.has(snapshot.leadId) && !demoDealIds.has(snapshot.dealId ?? '')),
-        surveys: state.surveys.filter((survey) => !isDemoSeedId(survey.id) && !demoDealIds.has(survey.dealId)),
-        documents: state.documents.filter((document) => !isDemoSeedId(document.id) && !demoLeadIds.has(document.leadId ?? '') && !demoDealIds.has(document.dealId ?? '')),
-        proposals: state.proposals.filter((proposal) => !isDemoSeedId(proposal.id) && !demoDealIds.has(proposal.dealId)),
-        proposalContracts: state.proposalContracts.filter((contract) => !isDemoSeedId(contract.id) && !demoDealIds.has(contract.dealId) && !demoProposalIds.has(contract.proposalId)),
-        invoices: state.invoices.filter((invoice) => !isDemoSeedId(invoice.id) && !demoDealIds.has(invoice.dealId)),
-        paymentLedgerEvents: state.paymentLedgerEvents.filter((event) => !isDemoSeedId(event.id)),
-        clientPortals: state.clientPortals.filter((portal) => !isDemoSeedId(portal.id) && !demoDealIds.has(portal.dealId)),
-        clients: state.clients.filter((client) => !isDemoSeedId(client.id)),
-        tickets: state.tickets.filter((ticket) => !isDemoSeedId(ticket.id)),
-        calendarEvents: state.calendarEvents.filter((event) => !isDemoSeedId(event.id) && !demoDealIds.has(event.linkedDealId ?? '')),
-        timelineEvents: state.timelineEvents.filter((event) => !isDemoSeedId(event.id) && !demoLeadIds.has(event.ownerId) && !demoDealIds.has(event.ownerId) && !demoProposalIds.has(event.ownerId)),
-      };
-      const next: SolarOpsState = {
-        ...withoutDemo,
-        leads: [...demo.leads, ...withoutDemo.leads],
-        deals: [...demo.deals, ...withoutDemo.deals],
-        solarSnapshots: [...demo.solarSnapshots, ...withoutDemo.solarSnapshots],
-        documents: [...demo.documents, ...withoutDemo.documents],
-        timelineEvents: [...demo.timelineEvents, ...withoutDemo.timelineEvents],
-      };
+      const next = mergeDemoSeed(getState());
       setState(next);
       return ok(next, 'Demo data loaded.');
+    },
+
+    loadGoldenDemo(): ActionResult<GoldenDemoModel> {
+      const next = mergeDemoSeed(getState());
+      setState(next);
+      return ok(buildGoldenDemoModel(next), 'Golden demo loaded.');
+    },
+
+    resetDemo(): ActionResult<SolarOpsState> {
+      const next = createInitialSolarOpsState();
+      setState(next);
+      return ok(next, 'Demo reset.');
+    },
+
+    runGoldenDemoNextStep(): ActionResult<GoldenDemoModel> {
+      const state = getState();
+      const model = buildGoldenDemoModel(state);
+      if (!model.loaded) {
+        const next = mergeDemoSeed(state);
+        setState(next);
+        return ok(buildGoldenDemoModel(next), 'Golden demo loaded.');
+      }
+
+      const lead = state.leads.find((item) => item.id === goldenDemoLeadId);
+      const deal = state.deals.find((item) => item.id === goldenDemoDealId);
+      if (!lead || !deal) return fail('Golden demo account is missing. Load the demo again.');
+
+      if (model.currentStepId === 'docs') {
+        const documents = state.documents.map((document) => (
+          (document.leadId === goldenDemoLeadId || document.dealId === goldenDemoDealId)
+            && ['valid_id', 'site_control_document'].includes(document.category)
+            ? validateDomainDocument(document, 'cs-demo')
+            : document
+        ));
+        const updatedDeal = syncDealDocumentStatus(deal, documents);
+        const nextState = appendTimeline(
+          { ...state, documents, deals: replaceById(state.deals, updatedDeal) },
+          createTimeline('deal', deal.id, 'Golden demo documents validated', 'Valid ID and site-control document were validated in local demo mode.', 'cs'),
+        );
+        setState(nextState);
+        return ok(buildGoldenDemoModel(nextState), 'Golden demo documents validated.');
+      }
+
+      if (model.currentStepId === 'survey') {
+        let survey = state.surveys.find((item) => item.dealId === goldenDemoDealId);
+        if (!survey) {
+          survey = scheduleDomainSurvey(deal, {
+            installerId: 'installer-demo',
+            scheduledAt: '2026-06-12T09:00',
+            location: deal.leadSnapshot.location,
+          });
+        }
+        for (const category of requiredSurveyEvidence) {
+          survey = addSurveyEvidence(survey, {
+            category,
+            fileName: `${category}-demo.jpg`,
+            mimeType: 'image/jpeg',
+            storagePath: `${survey.id}/${category}-demo.jpg`,
+          });
+        }
+        survey = validateDomainSurvey({ ...survey, isStructurallySound: true, blockers: [] });
+        const updatedDeal: DealRecord = {
+          ...deal,
+          stage: 'survey_validated',
+          surveyStatus: 'validated',
+          nextAction: 'Build proposal.',
+          updatedAt: nowIso(),
+        };
+        const calendarEvent: CalendarEventRecord = {
+          id: makeId('calendar-demo'),
+          type: 'survey',
+          linkedDealId: deal.id,
+          linkedSurveyId: survey.id,
+          title: `Survey: ${deal.name}`,
+          startAt: survey.scheduledAt,
+          location: survey.location,
+        };
+        const surveys = state.surveys.some((item) => item.id === survey!.id)
+          ? replaceById(state.surveys, survey)
+          : [survey, ...state.surveys];
+        const nextState = appendTimeline(
+          { ...state, surveys, deals: replaceById(state.deals, updatedDeal), calendarEvents: [calendarEvent, ...state.calendarEvents] },
+          createTimeline('survey', survey.id, 'Golden demo installer survey validated', 'Required installer evidence and roof soundness were completed locally.', 'installer'),
+        );
+        setState(nextState);
+        return ok(buildGoldenDemoModel(nextState), 'Golden demo installer survey validated.');
+      }
+
+      if (model.currentStepId === 'proposal') {
+        const documentSyncedDeal = syncDealDocumentStatus(deal, state.documents);
+        const solarSnapshot = findDealSolarSnapshot(state, documentSyncedDeal);
+        if (!solarSnapshot) return fail('Golden demo Solar Snapshot is missing.');
+        const active = state.proposals.find((proposal) => proposal.dealId === deal.id && proposal.isActive);
+        const draft = createProposalDraft(documentSyncedDeal, {
+          systemSizeKwp: solarSnapshot.selectedSystemSizeKwp || 12.6,
+          previousProposalId: active?.id,
+          solarSnapshot,
+        });
+        const frozen = freezeDomainProposal(draft);
+        const proposals = [frozen, ...state.proposals.map((item) => (item.dealId === deal.id ? { ...item, isActive: false } : item))];
+        const updatedDeal: DealRecord = {
+          ...documentSyncedDeal,
+          stage: 'proposal_built',
+          proposalStatus: frozen.status,
+          value: frozen.subtotal,
+          commercialPacket: {
+            ...documentSyncedDeal.commercialPacket,
+            proposedSystemSizeKwp: frozen.systemSizeKwp,
+            estimatedPrice: frozen.subtotal,
+            grossMarginPercent: frozen.grossMarginPercent,
+          },
+          nextAction: 'Generate contract-ready handoff.',
+          updatedAt: nowIso(),
+        };
+        const nextState = appendTimeline(
+          { ...state, proposals, deals: replaceById(state.deals, updatedDeal) },
+          createTimeline('proposal', frozen.id, 'Golden demo proposal generated', `Frozen proposal revision ${frozen.revision} created for ${frozen.systemSizeKwp} kWp.`, 'sales'),
+        );
+        setState(nextState);
+        return ok(buildGoldenDemoModel(nextState), 'Golden demo proposal generated and frozen.');
+      }
+
+      if (model.currentStepId === 'contract') {
+        const activeProposal = state.proposals.find((proposal) => proposal.dealId === deal.id && proposal.isActive);
+        if (!activeProposal) return fail('Generate the golden demo proposal first.');
+        const contract = state.proposalContracts.find((item) => item.proposalId === activeProposal.id);
+        if (!contract) {
+          const nextContract = generateDomainContract(activeProposal, deal, typeof window === 'undefined' ? 'http://127.0.0.1:5173' : window.location.origin);
+          const updatedDeal = { ...deal, contractStatus: 'sent' as const, nextAction: 'Capture typed contract acceptance.', updatedAt: nowIso() };
+          const nextState = appendTimeline(
+            { ...state, proposalContracts: [nextContract, ...state.proposalContracts], deals: replaceById(state.deals, updatedDeal) },
+            createTimeline('proposal', activeProposal.id, 'Golden demo contract link generated', nextContract.publicUrl, 'sales'),
+          );
+          setState(nextState);
+          return ok(buildGoldenDemoModel(nextState), 'Golden demo contract link generated.');
+        }
+        if (contract.status !== 'signed') {
+          const accepted = acceptDomainContract(contract, activeProposal, deal, 'Ramon Dela Cruz');
+          const updatedDeal = {
+            ...deal,
+            stage: 'contract_accepted' as const,
+            proposalStatus: 'accepted' as const,
+            contractStatus: 'signed' as const,
+            paymentStatus: accepted.paymentLedgerEvent.status,
+            nextAction: 'Mark deal won.',
+            updatedAt: nowIso(),
+          };
+          const nextState = appendTimeline(
+            {
+              ...state,
+              proposalContracts: replaceById(state.proposalContracts, accepted.contract),
+              proposals: replaceById(state.proposals, accepted.proposal),
+              invoices: [accepted.invoice, ...state.invoices],
+              paymentLedgerEvents: [accepted.paymentLedgerEvent, ...state.paymentLedgerEvents],
+              clients: [accepted.client, ...state.clients],
+              deals: replaceById(state.deals, updatedDeal),
+            },
+            createTimeline('deal', deal.id, 'Golden demo contract accepted', 'Ramon Dela Cruz accepted the frozen proposal locally.', 'client'),
+          );
+          setState(nextState);
+          return ok(buildGoldenDemoModel(nextState), 'Golden demo contract accepted.');
+        }
+        const wonDeal = markDealOutcome(deal, 'won', 'Golden demo contract-ready handoff completed.');
+        const nextState = appendTimeline(
+          { ...state, deals: replaceById(state.deals, wonDeal) },
+          createTimeline('deal', deal.id, 'Golden demo completed', 'Iloilo Mini Mart reached won handoff in local demo mode.', 'sales'),
+        );
+        setState(nextState);
+        return ok(buildGoldenDemoModel(nextState), 'Golden demo marked won.');
+      }
+
+      return ok(model, 'Golden demo is complete.');
     },
 
     createLead(input: LeadInput): ActionResult<LeadRecord> {

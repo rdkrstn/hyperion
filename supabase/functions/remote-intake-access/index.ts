@@ -10,7 +10,7 @@ if (!remoteSecret) throw new Error('REMOTE_INTAKE_JWT_SECRET is required.');
 
 Deno.serve(createRemoteIntakeAccessHandler({
   async loadPublicPayload({ token, accessJwt }) {
-    verifyRemoteToken(accessJwt, token, remoteSecret);
+    await verifyRemoteToken(accessJwt, token, remoteSecret);
     const { data: intakeToken, error } = await supabase
       .from('remote_intake_tokens')
       .select('id,lead_id,deal_id,token,status,allowed_categories,expires_at')

@@ -1,6 +1,6 @@
 # /init Bootstrap
 
-This folder is the setup source of truth for the clean Solar Ops workspace.
+This folder is the setup source of truth for the Hyperion workspace.
 
 ## 1. Install
 
