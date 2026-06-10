@@ -1,0 +1,33 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, Arial, sans-serif", "primaryColor": "#fef3c7", "primaryTextColor": "#78350f", "primaryBorderColor": "#f59e0b", "lineColor": "#64748b", "secondaryColor": "#ecfeff", "tertiaryColor": "#f8fafc"}}}%%
+flowchart TB
+  Events["Workflow Events"]
+  Mode{"VITE_AUTOMATION_MODE"}
+  Local["Local Simulation<br/>default public demo behavior"]
+  Webhook["Webhook Dispatch<br/>explicit opt-in only"]
+  N8N["n8n or compatible workflow receiver"]
+
+  subgraph Recipes["Handoff Recipes"]
+    LeadCaptured["lead_captured<br/>create CRM task or Slack note"]
+    DocsMissing["documents_missing<br/>client reminder"]
+    ProposalSent["proposal_sent<br/>3-day follow-up"]
+    SurveyValidated["survey_validated<br/>notify proposal owner"]
+    NetMeteringBlocked["net_metering_blocked<br/>operations task"]
+    ContractReady["contract_ready<br/>installer/project handoff"]
+  end
+
+  subgraph Guardrails["Guardrails"]
+    NoAuto["No external calls by default"]
+    NoSecrets["No secret webhook URLs committed"]
+    NoStateChange["Automation does not approve,<br/>bill, or advance stages"]
+    Review["Webhook mode requires review"]
+  end
+
+  Events --> Recipes
+  Recipes --> Mode
+  Mode -->|"local"| Local
+  Mode -->|"webhook and env present"| Webhook
+  Webhook --> N8N
+  Local --> NoAuto
+  Webhook --> Review
+  NoSecrets --> Webhook
+  NoStateChange --> Recipes

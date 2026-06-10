@@ -1,0 +1,40 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, Arial, sans-serif", "primaryColor": "#f0fdf4", "primaryTextColor": "#14532d", "primaryBorderColor": "#22c55e", "lineColor": "#64748b", "secondaryColor": "#eff6ff", "tertiaryColor": "#fff7ed"}}}%%
+flowchart LR
+  Captured["Lead Captured"]
+  Qualified["Qualified"]
+  DealCreated["Deal Created"]
+  SnapshotReviewed["Solar Snapshot Reviewed"]
+  SurveyScheduled["Survey Scheduled"]
+  SurveyValidated["Survey Validated"]
+  ProposalBuilt["Proposal Built"]
+  PortalShared["Client Portal Shared"]
+  ContractAccepted["Contract Accepted"]
+  Won["Won"]
+  Aftersales["Installation, Net-Metering, Aftersales"]
+
+  Captured --> Qualified --> DealCreated --> SnapshotReviewed --> SurveyScheduled --> SurveyValidated --> ProposalBuilt --> PortalShared --> ContractAccepted --> Won --> Aftersales
+
+  subgraph Gates["Deterministic Gates"]
+    Bill["Bill or kWh fallback"]
+    Pin["Confirmed rooftop pin"]
+    SolarGate["Solar API ready<br/>or owner/manager override"]
+    Evidence["Installer evidence<br/>and roof soundness"]
+    Docs["Validated customer bill,<br/>valid ID, site control"]
+    NetMetering["Net-metering readiness"]
+    Frozen["Frozen proposal revision"]
+  end
+
+  Bill -. qualifies .-> Qualified
+  Pin -. enables .-> SnapshotReviewed
+  SolarGate -. blocks dispatch until clear .-> SurveyScheduled
+  Evidence -. required for .-> SurveyValidated
+  Docs -. required for .-> ProposalBuilt
+  NetMetering -. required for .-> ProposalBuilt
+  Frozen -. required for .-> PortalShared
+
+  Sales["Sales"] --> Captured
+  Sales --> DealCreated
+  Sales --> SurveyScheduled
+  Installer["Installer"] --> SurveyValidated
+  CS["Customer Success"] --> Docs
+  Owner["Owner"] --> Won

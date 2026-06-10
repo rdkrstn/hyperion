@@ -138,10 +138,12 @@ See [docs/automation-handoffs.md](docs/automation-handoffs.md).
 ## Documentation
 
 - [docs/project-status.md](docs/project-status.md)
+- [docs/hyperion-platform-blueprints.md](docs/hyperion-platform-blueprints.md)
 - [docs/local-demo-mode.md](docs/local-demo-mode.md)
 - [docs/architecture.md](docs/architecture.md)
 - [docs/supabase.md](docs/supabase.md)
 - [docs/automation-handoffs.md](docs/automation-handoffs.md)
+- [docs/ci-cd.md](docs/ci-cd.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)
 - [ROADMAP.md](ROADMAP.md)
