@@ -1,3 +1,4 @@
+// Legacy naming retained during the Solar Ops -> Hyperion transition.
 import { useMemo, useState } from 'react';
 import { computeAnalytics } from '../lib/analytics';
 import {

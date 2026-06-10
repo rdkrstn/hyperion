@@ -1,15 +1,16 @@
-# Solar Ops Memory
+# Hyperion Memory
 
 ## Durable Decisions
 
-- Product: Solar inquiry-to-installation operating system.
+- Product: Hyperion public demo/reference implementation for a solar inquiry-to-installation operating system.
 - Stack: Vite + React + TypeScript + Supabase + React Router + DaisyUI + shadcn/ui source components.
 - Supabase usage: Auth, Postgres, RLS, Storage, Edge Functions, and pgvector.
 - OpenAI usage: Edge Functions only; `OPENAI_API_KEY` is never exposed to React.
 - Dashboard shell: `/signin` is public; operational pages live under protected routes with sidebar/topbar navigation.
 - Public routes: `/inquiry` for Solar Readiness Intake, `/remote-intake/:token` for expiring document uploads, `/portal/:token` for Client Portal value review and quote request, and `/contracts/:token` for typed contract acceptance.
 - Detail route pattern for the clean demo: `/leads/:id`, `/deals/:id`, `/documents/:id`, `/proposals/:id`, `/surveys/:id`, `/calendar/:id`, `/tickets/:id`, and `/analytics/:id`.
-- Legacy demo routes are removed from active routing: `/crm`, `/pipeline`, `/opportunities`, `/checkout`, `/billing`, `/reports`, `/ai-assist`, `/notifications`, and `/clients`.
+- Legacy demo routes are removed from active routing: `/crm`, `/opportunities`, `/checkout`, `/billing`, `/reports`, `/ai-assist`, `/notifications`, and `/clients`.
+- Public demo navigation: Overview (`/dashboard`), Pipeline (`/pipeline`), Workbench (`/workbench`), Automations (`/automations`), Analytics (`/analytics`), and Docs (`/docs`).
 - Code organization: `src/App.tsx` is route composition only; app shell lives in `src/app`, domain features live in `src/domains`, and shared orchestration/UI/types live in `src/shared`.
 - Business mutation boundary: React calls Supabase Edge Functions through `src/shared/api/businessMutations.ts`; React owns UX state, Functions own stage gates and multi-table mutations, and Postgres owns canonical records.
 - Canonical database baseline: `supabase/migrations/20260521183144_clean_domain_state_machine.sql`; older preview migrations are intentionally removed.
@@ -37,7 +38,7 @@
 - File Vault boundary: lead-level and deal-level files live as polymorphic `documents` rows backed by the private `deal-files` bucket. Uploads start `needs_review`; CS/owner validation is required before required customer bill, valid ID, and site-control blockers clear. Lead-level documents can be uploaded before a deal exists and later satisfy proposal document gates. Local mode stores uploaded payloads as data URLs so view, download, replace, and delete work without Supabase Storage; replacement resets validation and deletion reopens blockers.
 - Document viewer boundary: `/documents/:id` is the canonical file detail route. Local mode previews stored data URLs; Supabase mode requests a short-lived signed URL through `document-signed-url` and never exposes broad public bucket access. Customer Bill documents can trigger bill OCR from the viewer or Lead Energy Profile.
 - Energy Graph boundary: the old Bill OCR tab is removed. Bill extraction output and the 12-month observed/annualized bar chart live under Lead Energy Profile. Production OCR uses Gemini structured image extraction first with Google Vision fallback through `bill-ocr-preaudit`; local mode is labeled local/manual and may parse known Meralco fixture filenames for recording.
-- Automation boundary: OCR, pre-audit, packet, Client Portal, and quote actions write internal automation events/outbox records; no external n8n/Make webhook dispatch is built yet.
+- Automation boundary: OCR, pre-audit, packet, Client Portal, and quote actions write local automation events by default. Optional n8n-style webhook handoffs are explicit opt-in and must not dispatch externally in local mode.
 - Feedback boundary: mutating UI actions use shared loading, toast/inline feedback, confirmations for destructive/financial actions, and duplicate-click guards.
 - Net-metering boundary: tracked as a workflow across intake, lead, deal, survey, documents, packet, and proposal views; required bill/site-control documents, installer technical review, generated Annex PDFs, and `ready_for_lender` state gate proposal/contract readiness.
 - Net-metering UI boundary: Deals, Documents, Proposals, Client Portal, and public proposal/contract views show the ordered workflow: Eligibility, Documents, Technical Review, Application, Metering, Active Credits. Staff see exact blockers, utility/site-control state, validated document state, installer review state, and SLA/deemed-approved badges when available.

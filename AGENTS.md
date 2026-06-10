@@ -2,7 +2,7 @@
 
 ## Project Purpose
 
-Solar Ops is a single-company operating system for solar installers. The clean demo IA is organized around Leads, Deals, shared Solar Snapshots, Surveys, Documents, Proposals, Client Portal links, Tickets, and Owner/Manager Analytics. Leads qualify the buyer; Deals commercialize the project; Solar Snapshots validate the site before dispatch; Surveys prove technical feasibility; Documents clear blockers; Proposals convert; Client Portal builds trust; Tickets support aftersales.
+Hyperion is a public demo/reference implementation for a single-company solar installer operating system. The v1 public IA is organized around Overview, Pipeline, Workbench, Automations, Analytics, and Docs while preserving the underlying lead, deal, Solar Snapshot, survey, document, proposal, client portal, ticket, and owner/manager analytics domains.
 
 ## Stack
 
@@ -25,6 +25,7 @@ Solar Ops is a single-company operating system for solar installers. The clean d
 - Domain pages, services, rules, and types live under `src/domains/*`.
 - Production mutation clients live in `src/shared/api/businessMutations.ts`.
 - Cross-domain local development fallback orchestration lives in `src/shared/api/solarOpsStore.ts`.
+- Internal `SolarOps` names are legacy implementation names retained during the Hyperion public demo release.
 - Shared business-neutral UI, types, and utilities live under `src/shared`.
 - The canonical Supabase baseline is `supabase/migrations/20260521183144_clean_domain_state_machine.sql`.
 

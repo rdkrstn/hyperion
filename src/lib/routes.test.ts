@@ -5,6 +5,10 @@ describe('dashboard routes', () => {
   it('protects dashboard routes and keeps signin public', () => {
     expect(defaultProtectedPath).toBe('/dashboard');
     expect(isProtectedPath('/dashboard')).toBe(true);
+    expect(isProtectedPath('/pipeline')).toBe(true);
+    expect(isProtectedPath('/workbench')).toBe(true);
+    expect(isProtectedPath('/automations')).toBe(true);
+    expect(isProtectedPath('/docs')).toBe(true);
     expect(isProtectedPath('/leads')).toBe(true);
     expect(isProtectedPath('/leads/new')).toBe(true);
     expect(isProtectedPath('/deals')).toBe(true);
@@ -20,7 +24,7 @@ describe('dashboard routes', () => {
   });
 
   it('removes crowded legacy demo routes from active protected routing', () => {
-    for (const route of ['/crm', '/pipeline', '/opportunities', '/checkout', '/billing', '/reports', '/ai-assist', '/notifications', '/clients']) {
+    for (const route of ['/crm', '/opportunities', '/checkout', '/billing', '/reports', '/ai-assist', '/notifications', '/clients']) {
       expect(isProtectedPath(route)).toBe(false);
     }
   });
@@ -41,29 +45,28 @@ describe('dashboard routes', () => {
 
   it('returns slim role-specific demo navigation', () => {
     expect(visibleRoutesForRole('owner').map((route) => route.label)).toEqual([
-      'Dashboard',
-      'Leads',
-      'Deals',
-      'Surveys',
-      'Documents',
-      'Proposals',
-      'Tickets',
+      'Overview',
+      'Pipeline',
+      'Workbench',
+      'Automations',
       'Analytics',
-      'Settings',
+      'Docs',
     ]);
     expect(visibleRoutesForRole('sales').map((route) => route.label)).toEqual([
-      'Leads',
-      'Deals',
-      'Proposals',
-      'Calendar',
-      'Client Portal Links',
+      'Overview',
+      'Pipeline',
+      'Workbench',
+      'Automations',
+      'Analytics',
+      'Docs',
     ]);
     expect(visibleRoutesForRole('installer').map((route) => route.label)).toEqual([
-      'Assigned Surveys',
-      'Site Details',
-      'Evidence Upload',
-      'Blockers',
-      'Completed Surveys',
+      'Overview',
+      'Pipeline',
+      'Workbench',
+      'Automations',
+      'Analytics',
+      'Docs',
     ]);
   });
 });

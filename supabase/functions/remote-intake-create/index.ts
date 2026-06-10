@@ -19,7 +19,7 @@ Deno.serve(async (request) => {
       if (!profile) throw new ApiError('forbidden', 'Staff profile is required.', 403);
       const token = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
-      const accessJwt = signRemoteToken(token, leadId, remoteSecret, expiresAt);
+      const accessJwt = await signRemoteToken(token, leadId, remoteSecret, expiresAt);
       const allowedCategories = requestedDocuments.length
         ? requestedDocuments
         : ['customer_bill', 'valid_id', 'site_control_document'];

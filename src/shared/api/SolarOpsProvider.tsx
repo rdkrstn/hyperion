@@ -1,3 +1,4 @@
+// Legacy naming retained during the Solar Ops -> Hyperion transition.
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createInitialSolarOpsState, createSolarOpsActions, type SolarOpsActions, type SolarOpsState } from './solarOpsStore';
 import type { Role } from '../types/app';

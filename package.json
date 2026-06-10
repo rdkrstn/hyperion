@@ -1,6 +1,25 @@
 {
-  "name": "solar-ops",
-  "version": "0.1.0",
+  "name": "hyperion-flow",
+  "version": "1.0.0",
+  "description": "Open-source workflow platform for solar PV installers: leads, surveys, proposals, documents, net-metering, automation handoffs, and project operations.",
+  "license": "Apache-2.0",
+  "keywords": [
+    "solar",
+    "solar-pv",
+    "renewable-energy",
+    "crm",
+    "operations",
+    "workflow",
+    "supabase",
+    "react",
+    "typescript",
+    "vite",
+    "open-source",
+    "clean-energy",
+    "field-operations",
+    "n8n",
+    "automation"
+  ],
   "private": true,
   "type": "module",
   "scripts": {
