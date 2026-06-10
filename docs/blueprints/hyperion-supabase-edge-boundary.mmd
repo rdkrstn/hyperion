@@ -1,0 +1,64 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, Arial, sans-serif", "primaryColor": "#eff6ff", "primaryTextColor": "#1e3a8a", "primaryBorderColor": "#3b82f6", "lineColor": "#64748b", "secondaryColor": "#f8fafc", "tertiaryColor": "#fefce8"}}}%%
+flowchart TB
+  React["React UI<br/>local state, forms, route rendering"]
+  Mutations["businessMutations.ts<br/>production mutation client"]
+
+  subgraph Edge["Supabase Edge Functions"]
+    Intake["lead-intake"]
+    OCR["bill-ocr-preaudit"]
+    Maps["maps-enrichment"]
+    Snapshot["solar-snapshot"]
+    Readiness["readiness-score"]
+    RemoteCreate["remote-intake-create"]
+    RemoteAccess["remote-intake-access"]
+    RemoteUpload["remote-intake-upload"]
+    DocUrl["document-signed-url"]
+    DocValidate["document-validate"]
+    Dispatch["survey-dispatch"]
+    Evidence["survey-evidence-upload"]
+    Proposal["generate-proposal"]
+    Compliance["generate-compliance-docs"]
+    Routes["installer-route-plan"]
+    Report["report-rag"]
+    Contract["contract-access"]
+  end
+
+  subgraph Data["Supabase Data Plane"]
+    Auth["Auth<br/>staff user identity"]
+    Staff["staff_profiles<br/>database roles"]
+    DB["Postgres<br/>canonical operational records"]
+    RLS["RLS Policies"]
+    Buckets["Private Buckets<br/>readiness, survey evidence,<br/>deal files, compliance docs"]
+    Vector["pgvector<br/>report_embedding_chunks"]
+  end
+
+  subgraph Secrets["Server-Side Secrets Only"]
+    ServiceRole["SUPABASE_SERVICE_ROLE_KEY"]
+    GeminiKey["GEMINI_API_KEY"]
+    VisionKey["GOOGLE_VISION_API_KEY"]
+    MapsKey["GOOGLE_MAPS_SERVER_KEY"]
+    RemoteSecret["REMOTE_INTAKE_JWT_SECRET"]
+    OpenAIKey["OPENAI_API_KEY"]
+  end
+
+  React -. "local demo uses solarOpsStore" .-> React
+  React -. "production writes" .-> Mutations
+  Mutations --> Edge
+
+  Edge --> Auth
+  Auth --> Staff
+  Edge --> DB
+  DB --> RLS
+  Edge --> Buckets
+  Report --> Vector
+
+  ServiceRole --> Edge
+  GeminiKey --> OCR
+  VisionKey --> OCR
+  MapsKey --> Maps
+  MapsKey --> Snapshot
+  MapsKey --> Routes
+  RemoteSecret --> RemoteCreate
+  RemoteSecret --> RemoteAccess
+  RemoteSecret --> RemoteUpload
+  OpenAIKey --> Report
